@@ -1064,6 +1064,77 @@ timestamp shape encountered.
 
 510 tests, 99% coverage. No test touches the network.
 
+### Both UNVERIFIED items closed — one by artifact, one by inference
+
+**Item 1: the bulk-upload format. VERIFIED 2026-08-17.**
+
+A real DraftKings upload template settled it. The file serves two purposes side
+by side: entry columns on the left, the salary listing on the right.
+
+```
+cols 0-8   QB,RB,RB,WR,WR,WR,TE,FLEX,DST     <- the lineup you fill in
+col  9     (blank spacer)
+col  10+   Position,Name + ID,Name,ID,...    <- the listing to copy from
+```
+
+The prototype's assumed header was **exactly right**. Three things the template
+settled that were not knowable without it:
+
+- **`Name (ID)` is accepted.** DraftKings' instruction 2: *"you can use the
+  Name + ID column or the ID column"*, and that column's values are literally
+  `C.J. Stroud (43837771)`. Instruction 4 rules out a bare name.
+- **A 500-lineup-per-file cap** we did not know existed. The writer now refuses
+  before writing rather than after upload, which is the worst time to learn it.
+- **One id per player serves every slot, including FLEX.** The salary block
+  lists each player once with a combined `RB/FLEX` roster position and a single
+  id. The draftables API *does* issue a separate FLEX `draftableId`, so using
+  it here would have been a plausible mistake with no way to notice short of a
+  failed upload.
+
+**Item 2: reproducing a DraftKings-published player total. Substantially
+verified, without a contest entry.**
+
+The insight: **`AvgPointsPerGame` in a salary export is DraftKings' own
+fantasy-point arithmetic.** Reproducing it from raw nflverse stat lines checks
+our scoring against DK's actual *output*, not merely its published *rules*.
+
+Restricting to players who appeared in all 17 regular-season games — so the
+denominator cannot be ambiguous — and comparing:
+
+| Window | Playoff players: median diff | Within 0.05 |
+|---|---|---|
+| Regular season only | 0.229 | 2/20 |
+| **Regular + postseason** | **0.019** | **18/20** |
+
+That is not a tuning exercise; it *discovered a DraftKings convention*.
+**DraftKings includes playoff games in the average.** Across all 58 full-season
+players on the slate: median absolute difference **0.023**, with **56 of 58**
+inside DK's own two-decimal rounding — which is the floor of what any correct
+implementation could achieve.
+
+An initial hypothesis was wrong and worth recording: I first guessed the
+residual came from DK dividing by more games (counting inactive weeks), and
+tested whether `sum(points) / DK_average` landed on clean integers. Only 17%
+did — because DK rounds the published average, which destroys the integer
+signal. The test was defeated by the data's precision, not by the hypothesis
+being unfalsifiable. Isolating full-season players removed the denominator
+question entirely and gave a clean answer.
+
+**What this does NOT verify, stated plainly.** An average over 17+ games
+exercises the common path thoroughly — yardage, touchdowns, receptions, the
+300/100 bonuses, interceptions, fumbles. It cannot exercise rare events:
+safeties, two-point conversions, return touchdowns, offensive fumble-recovery
+touchdowns. Those remain covered only by component tests against the published
+rules. A single real contest box score would close that gap, which is why the
+item is *substantially* verified rather than finished.
+
+The fixture stores **raw per-game stat lines**, not stored answers, so the test
+recomputes and a scoring regression fails it. A companion test proves the
+postseason finding rather than asserting it: truncating to 17 games must worsen
+agreement for *every* playoff player, and does.
+
+554 tests, 99% coverage.
+
 ### Open items
 - Verify the bulk-upload CSV format against a real DK entries template
   (**BLOCKED** — needs slates to open).

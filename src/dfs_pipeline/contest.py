@@ -50,10 +50,9 @@ MIN_DISTINCT_GAMES = 2
 
 #: The slot order DraftKings uses in its bulk-upload CSV header.
 #:
-#: UNVERIFIED: this ordering reflects the prototype's assumption and has not
-#: yet been checked against a real DraftKings entries template. It is asserted
-#: in tests so that when a real template arrives, any mismatch fails loudly
-#: rather than silently producing a rejected upload.
+#: VERIFIED 2026-08-17 against a real DraftKings upload template. See
+#: :mod:`dfs_pipeline.upload` for the template's own instructions and the
+#: golden test that pins this against a recorded copy.
 SLOT_ORDER: tuple[str, ...] = (
     "QB", "RB", "RB", "WR", "WR", "WR", "TE", "FLEX", "DST",
 )

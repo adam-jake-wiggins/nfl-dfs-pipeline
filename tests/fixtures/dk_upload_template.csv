@@ -1,0 +1,18 @@
+QB,RB,RB,WR,WR,WR,TE,FLEX,DST,,Instructions
+,,,,,,,,,,1. Locate the player you want to select in the list below 
+,,,,,,,,,,2. Copy the ID of your player (you can use the Name + ID column or the ID column) 
+,,,,,,,,,,3. Paste the ID into the roster position desired 
+,,,,,,,,,,4. You must include an ID for each player; you cannot use just the player's name 
+,,,,,,,,,,5. You can create up to 500 lineups per file 
+ 
+,,,,,,,,,,Position,Name + ID,Name,ID,Roster Position,Salary,Game Info,TeamAbbrev,AvgPointsPerGame
+,,,,,,,,,,QB,C.J. Stroud (43837771),C.J. Stroud,43837771,QB,5500,LV@HOU 08/20/2026 08:00PM ET,HOU,15.01
+,,,,,,,,,,QB,Kirk Cousins (43837773),Kirk Cousins,43837773,QB,5500,LV@HOU 08/20/2026 08:00PM ET,LV,11.25
+,,,,,,,,,,RB,David Montgomery (43837775),David Montgomery,43837775,RB/FLEX,5500,LV@HOU 08/20/2026 08:00PM ET,HOU,10.05
+,,,,,,,,,,RB,Ashton Jeanty (43837781),Ashton Jeanty,43837781,RB/FLEX,5500,LV@HOU 08/20/2026 08:00PM ET,LV,14.83
+,,,,,,,,,,WR,Nico Collins (43837785),Nico Collins,43837785,WR/FLEX,5500,LV@HOU 08/20/2026 08:00PM ET,HOU,15.08
+,,,,,,,,,,WR,Tre Tucker (43837787),Tre Tucker,43837787,WR/FLEX,5500,LV@HOU 08/20/2026 08:00PM ET,LV,9.69
+,,,,,,,,,,TE,Dalton Schultz (43837795),Dalton Schultz,43837795,TE/FLEX,5500,LV@HOU 08/20/2026 08:00PM ET,HOU,9.93
+,,,,,,,,,,TE,Brock Bowers (43837797),Brock Bowers,43837797,TE/FLEX,5500,LV@HOU 08/20/2026 08:00PM ET,LV,15.18
+,,,,,,,,,,DST,Texans  (43837799),Texans ,43837799,DST,5500,LV@HOU 08/20/2026 08:00PM ET,HOU,10.63
+,,,,,,,,,,DST,Raiders  (43837802),Raiders ,43837802,DST,5500,LV@HOU 08/20/2026 08:00PM ET,LV,4.41
