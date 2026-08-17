@@ -125,6 +125,12 @@ Capture a slate and a betting snapshot in one command:
 uv run dfs-snapshot --salaries DKSalaries.csv --odds
 ```
 
+Score a completed week from nflverse at DraftKings Classic rules:
+
+```bash
+uv run dfs-snapshot --results --season 2025 --week 1
+```
+
 Check remaining Odds API credits (costs nothing):
 
 ```bash
@@ -161,7 +167,7 @@ rejected.
 uv run pytest --cov=dfs_pipeline --cov-report=term-missing
 ```
 
-**VERIFIED (2026-08-17):** 313 tests, 100% statement coverage. The suite
+**VERIFIED (2026-08-17):** 343 tests, 100% statement coverage. The suite
 includes property-based tests over generated inputs, malformed-input fixtures
 asserting each failure names its file/row/column, and fixtures recorded from
 real DraftKings and Odds API responses. No test touches the network — a suite

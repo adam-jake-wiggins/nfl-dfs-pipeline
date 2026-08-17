@@ -672,6 +672,94 @@ confusing 401.
 
 313 tests, 100% statement coverage.
 
+### Results ingest — nflverse scored at DraftKings rules
+
+`dfs-snapshot --results --season 2025 --week 1` scores a completed week: 359
+players plus 32 defenses, 1,564 observations. This closes the loop from "what
+we knew" to "what happened".
+
+**Validated against an independent computation.** nflverse publishes its own
+PPR total from the same underlying statistics. DraftKings differs in exactly
+two ways — it charges −1 for interceptions and lost fumbles where standard
+scoring charges −2, and it adds 300/100-yard bonuses — so this identity must
+hold:
+
+    dk = ppr + interceptions + fumbles_lost + bonuses
+
+It held for **355 of 355** scored players in 2025 week 1. That is a real
+cross-check: if the mapping picked up a wrong column, the identity breaks.
+Matching my own expectations proves nothing; matching someone else's
+independent arithmetic proves the column mapping.
+
+### The points-allowed trap, made concrete
+
+nflverse has **no points-allowed column at any level** — not in `player_stats`,
+not in `team_stats`, nowhere. It has to be derived, and the obvious source is
+wrong.
+
+DraftKings charges a defense only for points surrendered while the DST was on
+the field. A pick-six thrown by your own quarterback is not charged to your
+defense. But **`td_team == defteam` is not the discriminator**. In 2025 weeks
+1–4, 18 touchdowns were scored by the team on defense for that play:
+
+| play_type | count | DK treatment |
+|---|---|---|
+| `pass` | 8 | excluded — scored against our offense |
+| `punt` | 7 | **counts** — special teams |
+| `field_goal` | 2 | **counts** — DK lists "FG Return TDs" |
+| `kickoff` | 1 | **counts** — special teams |
+
+A rule keyed on "the defense scored" would wrongly forgive 10 of 18. The
+discriminator is `play_type`, and `SCRIMMAGE_PLAY_TYPES` is asserted by a test
+precisely because widening it silently forgives return touchdowns.
+
+Concretely: Chicago beat Minnesota 24–21 in week 1 with a pick-six. Minnesota's
+defense is charged **18**, not 24 — which moves it from the 21–27 tier (0 pts)
+to the 14–20 tier (+1). Small, but wrong every week and always in the same
+direction. Exactly one team in week 1 differs from its opponent's final score,
+and there is a test asserting that blast radius so a widened rule fails loudly.
+
+**Documented ambiguity:** the extra point after an opponent's pick-six. DK
+lists "Extra-points" as points allowed without qualification, so it is counted
+even though the touchdown it follows is not. Recorded because it is a
+judgement call, not a derivation.
+
+### A bug the alias map was supposed to prevent — and caught
+
+`defense_results` resolved team codes through the alias map; `points_allowed_by_team`
+did not. **nflverse is not internally consistent**: play-by-play writes the
+Rams as `LA`, `team_stats` writes `LAR`. So the lookup missed and an entire
+defense was silently dropped from the week, with only a log line.
+
+Applying an alias layer on one side only is worse than not having one, because
+the failure is invisible — the pipeline reports success with 31 defenses
+instead of 32. Fixed by resolving on both sides; regression test asserts `LAR`
+is present and raw `LA` never leaks into the keys.
+
+### Design notes
+
+**Results key on nflverse ids, not DraftKings ids.** Results come from a
+different source with its own identifiers. Forcing a join at capture time would
+drop any player the crosswalk cannot yet resolve, and capture must never lose
+data to an unresolved name. Joining is Phase 1's problem.
+
+**The archived artifact is the input, not the output.** `load_and_score_week`
+stores the source rows plus the derived points-allowed figures — not our
+computed scores. Archiving only output would bake any scoring bug in
+permanently, which is the opposite of why raw artifacts exist. A test asserts
+`dk_points` does not appear in the artifact.
+
+**Re-capture is new history, not an overwrite.** nflverse revises prior weeks
+as official corrections land. A later capture records new observations with a
+later `captured_at`, so a revision is visible rather than silently replacing
+what we scored on at the time.
+
+**A team without an attributable points-allowed figure is skipped, not
+defaulted to zero** — defaulting would award a shutout the defense did not
+earn.
+
+348 tests, 99% coverage.
+
 ### Open items
 - Verify the bulk-upload CSV format against a real DK entries template
   (**BLOCKED** — needs slates to open).

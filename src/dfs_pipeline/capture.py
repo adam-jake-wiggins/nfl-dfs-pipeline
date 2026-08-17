@@ -15,7 +15,14 @@ from datetime import datetime
 from dfs_pipeline.adapters.base import SalarySource, SlatePlayer
 from dfs_pipeline.store import SnapshotStore, normalize_timestamp, utc_now
 
-__all__ = ["CaptureResult", "OddsCaptureResult", "ingest_slate", "ingest_odds"]
+__all__ = [
+    "CaptureResult",
+    "OddsCaptureResult",
+    "ResultsCaptureResult",
+    "ingest_slate",
+    "ingest_odds",
+    "ingest_results",
+]
 
 
 @dataclass(frozen=True, slots=True)
@@ -212,3 +219,89 @@ def _observations_for(
             yield {**base, "metric": "dk_status", "value": p.status}
         if p.lock_time_utc is not None:
             yield {**base, "metric": "dk_lock_time", "value": p.lock_time_utc}
+
+
+@dataclass(frozen=True, slots=True)
+class ResultsCaptureResult:
+    """What a results capture did, for the run report."""
+
+    artifact_sha256: str
+    season: int
+    week: int
+    players: int
+    defenses: int
+    observations: int
+    captured_at: str
+
+    @property
+    def total_entities(self) -> int:
+        return self.players + self.defenses
+
+
+def ingest_results(
+    store: SnapshotStore,
+    results: list,
+    raw: bytes,
+    *,
+    season: int,
+    week: int,
+    captured_at: str | datetime | None = None,
+    effective_at: str | datetime | None = None,
+    on_duplicate: str = "error",
+) -> ResultsCaptureResult:
+    """Record realized DraftKings points for one completed week.
+
+    ``effective_at`` defaults to ``captured_at``. nflverse does not stamp its
+    tables with a computation time, and the honest statement is "this is what
+    the source said when we read it" -- particularly because nflverse revises
+    prior weeks as official corrections land. Recording when *we* read it is
+    what makes those revisions visible later as separate observations rather
+    than as an overwrite.
+    """
+    captured = normalize_timestamp(captured_at) if captured_at else utc_now()
+    effective = normalize_timestamp(effective_at) if effective_at else captured
+
+    sha = store.put_artifact(
+        raw,
+        source="NFLVERSE",
+        kind="weekly_results",
+        original_filename=f"nflverse_{season}_wk{week}.json",
+        retrieved_at=captured,
+    )
+
+    observations = list(_result_observations(results, effective, captured))
+    written = store.record_many(
+        observations, artifact_sha256=sha, on_duplicate=on_duplicate
+    )
+
+    return ResultsCaptureResult(
+        artifact_sha256=sha,
+        season=season,
+        week=week,
+        players=sum(1 for r in results if r.entity_type == "player"),
+        defenses=sum(1 for r in results if r.entity_type == "dst"),
+        observations=written,
+        captured_at=captured,
+    )
+
+
+def _result_observations(results, effective: str, captured: str):
+    """Flatten scored results into narrow observation rows.
+
+    Keyed on the nflverse id (or team abbreviation for a defense), NOT on the
+    DraftKings player id: results come from a different source with its own
+    identifiers, and forcing a join at capture time would drop any player the
+    crosswalk cannot yet resolve.
+    """
+    for r in results:
+        base = dict(
+            subject_type=r.entity_type,
+            source="NFLVERSE",
+            source_subject_id=r.nflverse_id,
+            effective_at=effective,
+            captured_at=captured,
+        )
+        yield {**base, "metric": "actual_dk_points", "value": float(r.dk_points)}
+        yield {**base, "metric": "nflverse_name", "value": r.name}
+        yield {**base, "metric": "nflverse_team", "value": r.team}
+        yield {**base, "metric": "nflverse_position", "value": r.position}

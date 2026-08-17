@@ -268,5 +268,9 @@ SEED_METRICS: tuple[tuple[str, str, str | None, str], ...] = (
     ("implied_team_total", "num", "points", "(game_total / 2) - (spread / 2)"),
     # --- Realized outcomes ---
     ("actual_dk_points", "num", "points", "Realized DraftKings points, computed at DK Classic scoring"),
+    ("nflverse_name", "text", None, "Player or defense name as nflverse spells it"),
+    ("nflverse_team", "text", None, "Canonical team abbreviation from nflverse"),
+    ("nflverse_position", "text", None, "Position as nflverse lists it"),
+    ("points_allowed", "num", "points", "DST-attributable points allowed (NOT the opponent final score)"),
     ("actual_ownership", "num", "percent", "Realized ownership from a contest-results export"),
 )

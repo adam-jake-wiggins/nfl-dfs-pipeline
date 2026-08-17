@@ -520,3 +520,54 @@ def test_min_quota_flag_reaches_the_adapter(paths, stub_odds):
     main(["--odds", "--store", paths["store"], "--runs", paths["runs"],
           "--min-quota", "300", "--captured-at", "2026-08-17T17:00:00Z"])
     assert StubOddsAdapter.last_instance.kwargs["min_quota"] == 300
+
+
+# ---------------------------------------------------------------------------
+# The results path through the CLI
+# ---------------------------------------------------------------------------
+
+def test_results_requires_season_and_week(capsys):
+    with pytest.raises(SystemExit) as exc:
+        main(["--results"])
+    assert exc.value.code == 2
+    assert "--season and --week" in capsys.readouterr().err
+
+
+def test_results_capture_records_and_reports(paths, monkeypatch, capsys):
+    from dfs_pipeline.results import PlayerResult
+
+    scored = [
+        PlayerResult(2025, 1, "player", "00-0000001", "Test QB", "KC", "BUF", "QB", 24.5),
+        PlayerResult(2025, 1, "dst", "KC", "Chiefs", "KC", "BUF", "DST", 9.0),
+    ]
+    monkeypatch.setattr(
+        "dfs_pipeline.results.load_and_score_week",
+        lambda season, week: (scored, b'{"season": 2025}'),
+    )
+    assert main([
+        "--results", "--season", "2025", "--week", "1",
+        "--store", paths["store"], "--runs", paths["runs"],
+        "--captured-at", "2025-09-09T12:00:00Z",
+    ]) == EXIT_OK
+
+    assert "Results: scored 2 entities" in capsys.readouterr().out
+    record = _run_json(_only_run_dir(paths))["results"]["results"]
+    assert record["season"] == 2025 and record["week"] == 1
+    assert record["players"] == 1 and record["defenses"] == 1
+
+    with SnapshotStore.open(paths["store"], create=False) as store:
+        points = store.as_of("2025-09-10T00:00:00Z", metric="actual_dk_points")
+        assert {o.value for o in points} == {24.5, 9.0}
+
+
+def test_results_failure_exits_three(paths, monkeypatch, capsys):
+    """An empty or unavailable week is a data problem, not a crash."""
+    def boom(season, week):
+        raise ValueError(f"no play-by-play found for {season} week {week}")
+
+    monkeypatch.setattr("dfs_pipeline.results.load_and_score_week", boom)
+    assert main([
+        "--results", "--season", "2025", "--week", "99",
+        "--store", paths["store"], "--runs", paths["runs"],
+    ]) == EXIT_DATA
+    assert "no play-by-play" in capsys.readouterr().err

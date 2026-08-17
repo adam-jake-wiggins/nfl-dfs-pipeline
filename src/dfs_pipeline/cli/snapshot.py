@@ -32,7 +32,7 @@ from dfs_pipeline.adapters import (
     OddsApiError,
     SlateSchemaError,
 )
-from dfs_pipeline.capture import ingest_odds, ingest_slate
+from dfs_pipeline.capture import ingest_odds, ingest_results, ingest_slate
 from dfs_pipeline.secrets import MissingSecret, read_odds_api_key
 from dfs_pipeline.config import Config, ConfigError, load_config
 from dfs_pipeline.runs import RunDirectory
@@ -90,6 +90,16 @@ def build_parser() -> argparse.ArgumentParser:
              "(default: 25). Guards against a scheduled job exhausting the "
              "monthly budget before a live slate.",
     )
+    src.add_argument(
+        "--results",
+        action="store_true",
+        help="Capture realized DraftKings points for a completed week from "
+             "nflverse. Requires --season and --week.",
+    )
+    src.add_argument("--season", type=int, metavar="YYYY",
+                     help="Season for --results, e.g. 2025")
+    src.add_argument("--week", type=int, metavar="N",
+                     help="Week for --results")
     src.add_argument(
         "--quota",
         action="store_true",
@@ -169,9 +179,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.quota:
         return _report_quota(args)
 
-    if not args.salaries and not args.odds:
+    if args.results and (args.season is None or args.week is None):
+        parser.error("--results requires both --season and --week.")
+
+    if not args.salaries and not args.odds and not args.results:
         parser.error(
-            "nothing to capture. Supply --salaries CSV and/or --odds (see --help)."
+            "nothing to capture. Supply --salaries CSV, --odds, and/or "
+            "--results (see --help)."
         )
 
     return _run(args, config)
@@ -204,6 +218,8 @@ def _run(args: argparse.Namespace, config: Config) -> int:
                     _capture_salaries(args, config, store, run)
                 if args.odds:
                     _capture_odds(args, config, store, run)
+                if args.results:
+                    _capture_results(args, config, store, run)
             finally:
                 store.close()
             return EXIT_OK
@@ -228,6 +244,9 @@ def _run(args: argparse.Namespace, config: Config) -> int:
     except OddsApiError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_ERROR
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_DATA
     except (StoreError, OSError, sqlite3.Error) as exc:
         # sqlite3.Error is caught explicitly because it descends from neither
         # StoreError nor OSError: an unopenable database file raises
@@ -312,6 +331,40 @@ def _capture_odds(args, config: Config, store, run) -> None:
     print(f"  artifact     : {result.artifact_sha256[:16]}...")
     if result.quota_remaining is not None:
         print(f"  quota left   : {result.quota_remaining}")
+
+
+def _capture_results(args, config: Config, store, run) -> None:
+    from dfs_pipeline.results import load_and_score_week
+
+    results, raw = load_and_score_week(args.season, args.week)
+    outcome = ingest_results(
+        store, results, raw,
+        season=args.season, week=args.week,
+        captured_at=args.captured_at,
+        effective_at=args.effective_at,
+        on_duplicate=config.on_duplicate,
+    )
+    run.record.inputs.append({
+        "kind": "nflverse_weekly",
+        "path": f"nflverse {args.season} week {args.week}",
+        "filename": f"nflverse_{args.season}_wk{args.week}.json",
+        "sha256": outcome.artifact_sha256,
+        "byte_size": len(raw),
+    })
+    run.results["results"] = {
+        "season": outcome.season,
+        "week": outcome.week,
+        "players": outcome.players,
+        "defenses": outcome.defenses,
+        "observations": outcome.observations,
+        "captured_at": outcome.captured_at,
+    }
+
+    print(f"Results: scored {outcome.total_entities} entities "
+          f"({outcome.players} players, {outcome.defenses} defenses) "
+          f"for {outcome.season} week {outcome.week}.")
+    print(f"  observations : {outcome.observations:,}")
+    print(f"  artifact     : {outcome.artifact_sha256[:16]}...")
 
 
 def _report_quota(args) -> int:
