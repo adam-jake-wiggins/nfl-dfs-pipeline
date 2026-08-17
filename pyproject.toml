@@ -19,6 +19,9 @@ dependencies = [
     # nflverse access: schedules, play-by-play, and the player ID crosswalk
     # that replaces name-based joins. Requires Python >=3.10.
     "nflreadpy>=0.1.5,<1.0",
+    # Timezone database. macOS and Linux ship one; Windows does not, and
+    # slate times are published in US Eastern across the DST boundary.
+    "tzdata>=2024.1; sys_platform == 'win32'",
 ]
 
 [project.optional-dependencies]

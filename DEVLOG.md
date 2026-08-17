@@ -333,6 +333,95 @@ pragma is enabled, because the failure mode is invisible.
 Store implementation: 61 tests, **100% line and branch coverage** on
 `dfs_pipeline`.
 
+### DKSalaries.csv import path, and schema VERIFIED against a real export
+
+Built the manual CSV import first, ahead of the unofficial API path. It is the
+fallback the whole design depends on: when the draftables endpoint breaks —
+plausibly mid-slate, since it carries no stability guarantee — the manual
+export must still work. Building it first also means the eventual golden-file
+equivalence test has something to compare against.
+
+**Schema status moved UNVERIFIED → VERIFIED (2026-08-17)** against a real
+DraftKings export for the 2026 Week 1 main slate. It parsed on the first
+attempt: 716 entries (692 players + 24 defenses), 12 games, 24 teams, every
+kickoff converted correctly to UTC. 5,117 observations ingested in 209 ms;
+the as-of query returns all 716 salaries in 5.2 ms.
+
+Confirmed present in the real file and already handled: a **UTF-8 BOM**
+(Excel's doing), **CRLF line endings**, `Roster Position` values of the form
+`RB/FLEX`, and `AvgPointsPerGame` sometimes written as a bare integer.
+
+### The real file corrected an assumption in the handoff
+
+The export carries a **`Status` column** that was not in the assumed layout,
+and its vocabulary is not what the specification predicted:
+
+| Status | Count |
+|---|---|
+| *(empty)* | 611 |
+| `Q` | 82 |
+| `IR` | 15 |
+| `OUT` | 8 |
+
+The handoff specifies `--exclude-status OUT,DOUBTFUL`. **DraftKings does not
+emit `DOUBTFUL`.** A filter written to that spec would have matched nothing
+for doubtful players and left 15 IR players in the pool at full salary — a
+silent wrongness that produces plausible lineups built on unplayable players.
+Found three weeks before Week 1 rather than during it, which is the entire
+argument for testing against real data early.
+
+Status is now captured as a `dk_status` observation but **never acted on in
+the adapter**. Whether to exclude a designation is the optimizer's decision,
+and a player's status *at capture time* is itself point-in-time data that
+cannot be reconstructed later. Filtering at ingest would discard it
+permanently.
+
+The real file also confirmed the identity-resolution hazards the handoff
+anticipated: apostrophes (`Ja'Marr Chase`, `De'Von Achane`), suffixes
+(`Travis Etienne Jr.`, `Aaron Jones Sr.`), initials (`C.J. Stroud`), and
+hyphenation (`Jacory Croskey-Merritt`). Defenses are named by nickname
+(`Chargers`) with the code in `TeamAbbrev` (`LAC`), so the 32-team alias map
+is genuinely required.
+
+### Correction to the storage-decision arithmetic
+
+The SQLite-vs-Parquet argument cited ~6,600 rows/week. A single slate capture
+alone produces **5,117**, so with repeat captures plus projections, odds and
+results the real figure is nearer 15–20k/week — roughly 3× the estimate.
+Recorded because that number was offered as decision evidence. The conclusion
+is unchanged: ~300k rows/season is still orders of magnitude below where
+columnar storage earns its complexity.
+
+### Design notes
+
+**Validation is strict about breakage, tolerant of additions.** The adapter
+requires a subset of columns rather than an exact header match, because
+DraftKings adds columns over time without removing existing ones — `Status`
+being exactly that case. An exact-match check would have failed on a harmless
+change; a subset check caught nothing spurious and would still catch a real
+removal.
+
+**Slate-level invariants are checked, not just row-level ones.** Duplicate
+player IDs are rejected (they would silently double a player's exposure
+downstream), and a single-game file is rejected with a message naming it as a
+probable Showdown slate rather than failing later as an infeasible solve.
+
+**Archive before parsing.** `ingest_slate` stores the raw bytes *first*, so a
+parse failure still leaves the artifact on disk. A week's slate cannot be
+re-downloaded; an unparsed artifact is recoverable, an unarchived one is not.
+There is a test asserting the artifact survives a deliberate parse failure.
+
+**A fixture derived from the real file** (`dk_salaries_real_shape.csv`, 27
+rows) now carries the BOM, CRLF, Status values, and awkward names, with a test
+guarding the fixture's own structural features so it cannot quietly stop
+testing them. The hand-written fixtures test what we assumed; this one tests
+what DraftKings actually emits.
+
+The real 716-row export itself lives in the gitignored `_local/real_slates/`
+and is not committed.
+
+110 tests, **100% line and branch coverage**.
+
 ### Open items
 
 - Verify DK Classic scoring constants against DraftKings' published rules

@@ -254,6 +254,7 @@ SEED_METRICS: tuple[tuple[str, str, str | None, str], ...] = (
     ("dk_player_name", "text", None, "Player name exactly as DraftKings spells it"),
     ("dk_avg_points", "num", "points", "DraftKings AvgPointsPerGame field"),
     ("dk_lock_time", "text", None, "Slate lock time, ISO 8601 (API path only)"),
+    ("dk_status", "text", None, "DraftKings injury designation: Q, IR, or OUT"),
     # --- Projections ---
     ("projection_dk_points", "num", "points", "Projected DraftKings points"),
     ("projection_ownership", "num", "percent", "Projected ownership percentage"),
