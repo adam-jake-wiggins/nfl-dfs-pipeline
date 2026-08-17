@@ -1,0 +1,1892 @@
+{
+ "draftables": [
+  {
+   "draftableId": 43727631,
+   "firstName": "Ja'Marr",
+   "lastName": "Chase",
+   "displayName": "Ja'Marr Chase",
+   "shortName": "J. Chase",
+   "playerId": 1109979,
+   "playerDkId": 557826,
+   "position": "WR",
+   "rosterSlotId": 68,
+   "salary": 7800,
+   "status": "None",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Breaking",
+   "competition": {
+    "competitionId": 6175928,
+    "name": "TB @ CIN",
+    "startTime": "2026-09-13T17:00:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "21.0",
+     "sortValue": "21.0"
+    },
+    {
+     "id": -2,
+     "value": "17th",
+     "sortValue": "17",
+     "quality": "Medium"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "6"
+    }
+   ],
+   "teamId": 327,
+   "teamAbbreviation": "CIN",
+   "playerGameHash": "1109979-6175928"
+  },
+  {
+   "draftableId": 43727632,
+   "firstName": "Ja'Marr",
+   "lastName": "Chase",
+   "displayName": "Ja'Marr Chase",
+   "shortName": "J. Chase",
+   "playerId": 1109979,
+   "playerDkId": 557826,
+   "position": "WR",
+   "rosterSlotId": 70,
+   "salary": 7800,
+   "status": "None",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Breaking",
+   "competition": {
+    "competitionId": 6175928,
+    "name": "TB @ CIN",
+    "startTime": "2026-09-13T17:00:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "21.0",
+     "sortValue": "21.0"
+    },
+    {
+     "id": -2,
+     "value": "17th",
+     "sortValue": "17",
+     "quality": "Medium"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "6"
+    }
+   ],
+   "teamId": 327,
+   "teamAbbreviation": "CIN",
+   "playerGameHash": "1109979-6175928"
+  },
+  {
+   "draftableId": 43727325,
+   "firstName": "Jahmyr",
+   "lastName": "Gibbs",
+   "displayName": "Jahmyr Gibbs",
+   "shortName": "J. Gibbs",
+   "playerId": 1214154,
+   "playerDkId": 693115,
+   "position": "RB",
+   "rosterSlotId": 67,
+   "salary": 8000,
+   "status": "None",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Breaking",
+   "competition": {
+    "competitionId": 6176012,
+    "name": "NO @ DET",
+    "startTime": "2026-09-13T17:00:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "22.3",
+     "sortValue": "22.3"
+    },
+    {
+     "id": -2,
+     "value": "13th",
+     "sortValue": "13",
+     "quality": "Medium"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "6"
+    }
+   ],
+   "teamId": 334,
+   "teamAbbreviation": "DET",
+   "playerGameHash": "1214154-6176012"
+  },
+  {
+   "draftableId": 43727326,
+   "firstName": "Jahmyr",
+   "lastName": "Gibbs",
+   "displayName": "Jahmyr Gibbs",
+   "shortName": "J. Gibbs",
+   "playerId": 1214154,
+   "playerDkId": 693115,
+   "position": "RB",
+   "rosterSlotId": 70,
+   "salary": 8000,
+   "status": "None",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Breaking",
+   "competition": {
+    "competitionId": 6176012,
+    "name": "NO @ DET",
+    "startTime": "2026-09-13T17:00:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "22.3",
+     "sortValue": "22.3"
+    },
+    {
+     "id": -2,
+     "value": "13th",
+     "sortValue": "13",
+     "quality": "Medium"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "6"
+    }
+   ],
+   "teamId": 334,
+   "teamAbbreviation": "DET",
+   "playerGameHash": "1214154-6176012"
+  },
+  {
+   "draftableId": 43728215,
+   "firstName": "Brock",
+   "lastName": "Bowers",
+   "displayName": "Brock Bowers",
+   "shortName": "B. Bowers",
+   "playerId": 1285917,
+   "playerDkId": 781453,
+   "position": "TE",
+   "rosterSlotId": 69,
+   "salary": 6900,
+   "status": "None",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Breaking",
+   "competition": {
+    "competitionId": 6176090,
+    "name": "MIA @ LV",
+    "startTime": "2026-09-13T20:25:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "15.2",
+     "sortValue": "15.2"
+    },
+    {
+     "id": -2,
+     "value": "30th",
+     "sortValue": "30",
+     "quality": "High"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "13"
+    }
+   ],
+   "teamId": 341,
+   "teamAbbreviation": "LV",
+   "playerGameHash": "1285917-6176090"
+  },
+  {
+   "draftableId": 43728216,
+   "firstName": "Brock",
+   "lastName": "Bowers",
+   "displayName": "Brock Bowers",
+   "shortName": "B. Bowers",
+   "playerId": 1285917,
+   "playerDkId": 781453,
+   "position": "TE",
+   "rosterSlotId": 70,
+   "salary": 6900,
+   "status": "None",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Breaking",
+   "competition": {
+    "competitionId": 6176090,
+    "name": "MIA @ LV",
+    "startTime": "2026-09-13T20:25:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "15.2",
+     "sortValue": "15.2"
+    },
+    {
+     "id": -2,
+     "value": "30th",
+     "sortValue": "30",
+     "quality": "High"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "13"
+    }
+   ],
+   "teamId": 341,
+   "teamAbbreviation": "LV",
+   "playerGameHash": "1285917-6176090"
+  },
+  {
+   "draftableId": 43727236,
+   "firstName": "Lamar",
+   "lastName": "Jackson",
+   "displayName": "Lamar Jackson",
+   "shortName": "L. Jackson",
+   "playerId": 877745,
+   "playerDkId": 17173,
+   "position": "QB",
+   "rosterSlotId": 66,
+   "salary": 6800,
+   "status": "None",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Breaking",
+   "competition": {
+    "competitionId": 6175934,
+    "name": "BAL @ IND",
+    "startTime": "2026-09-13T17:00:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "17.3",
+     "sortValue": "17.3"
+    },
+    {
+     "id": -2,
+     "value": "19th",
+     "sortValue": "19",
+     "quality": "Medium"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "13"
+    }
+   ],
+   "teamId": 366,
+   "teamAbbreviation": "BAL",
+   "playerGameHash": "877745-6175934"
+  },
+  {
+   "draftableId": 43728527,
+   "firstName": "Steelers",
+   "lastName": "",
+   "displayName": "Steelers",
+   "shortName": "Steelers",
+   "playerId": 356,
+   "playerDkId": 18456,
+   "position": "DST",
+   "rosterSlotId": 71,
+   "salary": 3300,
+   "status": "None",
+   "isSwappable": true,
+   "isDisabled": false,
+   "competition": {
+    "competitionId": 6176144,
+    "name": "ATL @ PIT",
+    "startTime": "2026-09-13T17:00:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "7.8",
+     "sortValue": "7.8"
+    },
+    {
+     "id": -2,
+     "value": "21st",
+     "sortValue": "21",
+     "quality": "Medium"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "9"
+    }
+   ],
+   "teamId": 356,
+   "teamAbbreviation": "PIT",
+   "playerGameHash": "356-6176144"
+  },
+  {
+   "draftableId": 43728525,
+   "firstName": "Chargers",
+   "lastName": "",
+   "displayName": "Chargers",
+   "shortName": "Chargers",
+   "playerId": 357,
+   "playerDkId": 18461,
+   "position": "DST",
+   "rosterSlotId": 71,
+   "salary": 3500,
+   "status": "None",
+   "isSwappable": true,
+   "isDisabled": false,
+   "competition": {
+    "competitionId": 6176048,
+    "name": "ARI @ LAC",
+    "startTime": "2026-09-13T20:25:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "6.7",
+     "sortValue": "6.7"
+    },
+    {
+     "id": -2,
+     "value": "24th",
+     "sortValue": "24",
+     "quality": "High"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "7"
+    }
+   ],
+   "teamId": 357,
+   "teamAbbreviation": "LAC",
+   "playerGameHash": "357-6176048"
+  },
+  {
+   "draftableId": 43727633,
+   "firstName": "Amon-Ra",
+   "lastName": "St. Brown",
+   "displayName": "Amon-Ra St. Brown",
+   "shortName": "A. St. Brown",
+   "playerId": 1127106,
+   "playerDkId": 560800,
+   "position": "WR",
+   "rosterSlotId": 68,
+   "salary": 7500,
+   "status": "None",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Breaking",
+   "competition": {
+    "competitionId": 6176012,
+    "name": "NO @ DET",
+    "startTime": "2026-09-13T17:00:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "19.9",
+     "sortValue": "19.9"
+    },
+    {
+     "id": -2,
+     "value": "7th",
+     "sortValue": "7",
+     "quality": "Low"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "6"
+    }
+   ],
+   "teamId": 334,
+   "teamAbbreviation": "DET",
+   "playerGameHash": "1127106-6176012"
+  },
+  {
+   "draftableId": 43727634,
+   "firstName": "Amon-Ra",
+   "lastName": "St. Brown",
+   "displayName": "Amon-Ra St. Brown",
+   "shortName": "A. St. Brown",
+   "playerId": 1127106,
+   "playerDkId": 560800,
+   "position": "WR",
+   "rosterSlotId": 70,
+   "salary": 7500,
+   "status": "None",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Breaking",
+   "competition": {
+    "competitionId": 6176012,
+    "name": "NO @ DET",
+    "startTime": "2026-09-13T17:00:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "19.9",
+     "sortValue": "19.9"
+    },
+    {
+     "id": -2,
+     "value": "7th",
+     "sortValue": "7",
+     "quality": "Low"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "6"
+    }
+   ],
+   "teamId": 334,
+   "teamAbbreviation": "DET",
+   "playerGameHash": "1127106-6176012"
+  },
+  {
+   "draftableId": 43727274,
+   "firstName": "Graham",
+   "lastName": "Mertz",
+   "displayName": "Graham Mertz",
+   "shortName": "G. Mertz",
+   "playerId": 1164951,
+   "playerDkId": 886050,
+   "position": "QB",
+   "rosterSlotId": 66,
+   "salary": 4000,
+   "status": "IR",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Recent",
+   "competition": {
+    "competitionId": 6175952,
+    "name": "BUF @ HOU",
+    "startTime": "2026-09-13T17:00:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": -2,
+     "value": "6th",
+     "sortValue": "6",
+     "quality": "Low"
+    },
+    {
+     "id": 90,
+     "value": "-",
+     "sortValue": ""
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "8"
+    }
+   ],
+   "teamId": 325,
+   "teamAbbreviation": "HOU",
+   "playerGameHash": "1164951-6175952"
+  },
+  {
+   "draftableId": 43727347,
+   "firstName": "Josh",
+   "lastName": "Jacobs",
+   "displayName": "Josh Jacobs",
+   "shortName": "J. Jacobs",
+   "playerId": 944416,
+   "playerDkId": 12715,
+   "position": "RB",
+   "rosterSlotId": 67,
+   "salary": 6300,
+   "status": "Q",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Recent",
+   "competition": {
+    "competitionId": 6175964,
+    "name": "GB @ MIN",
+    "startTime": "2026-09-13T20:25:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "15.4",
+     "sortValue": "15.4"
+    },
+    {
+     "id": -2,
+     "value": "9th",
+     "sortValue": "9",
+     "quality": "Low"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "11"
+    }
+   ],
+   "teamId": 335,
+   "teamAbbreviation": "GB",
+   "playerGameHash": "944416-6175964"
+  },
+  {
+   "draftableId": 43727348,
+   "firstName": "Josh",
+   "lastName": "Jacobs",
+   "displayName": "Josh Jacobs",
+   "shortName": "J. Jacobs",
+   "playerId": 944416,
+   "playerDkId": 12715,
+   "position": "RB",
+   "rosterSlotId": 70,
+   "salary": 6300,
+   "status": "Q",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Recent",
+   "competition": {
+    "competitionId": 6175964,
+    "name": "GB @ MIN",
+    "startTime": "2026-09-13T20:25:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "15.4",
+     "sortValue": "15.4"
+    },
+    {
+     "id": -2,
+     "value": "9th",
+     "sortValue": "9",
+     "quality": "Low"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "11"
+    }
+   ],
+   "teamId": 335,
+   "teamAbbreviation": "GB",
+   "playerGameHash": "944416-6175964"
+  },
+  {
+   "draftableId": 43728528,
+   "firstName": "Lions",
+   "lastName": "",
+   "displayName": "Lions",
+   "shortName": "Lions",
+   "playerId": 334,
+   "playerDkId": 18348,
+   "position": "DST",
+   "rosterSlotId": 71,
+   "salary": 3200,
+   "status": "None",
+   "isSwappable": true,
+   "isDisabled": false,
+   "competition": {
+    "competitionId": 6176012,
+    "name": "NO @ DET",
+    "startTime": "2026-09-13T17:00:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "5.7",
+     "sortValue": "5.7"
+    },
+    {
+     "id": -2,
+     "value": "25th",
+     "sortValue": "25",
+     "quality": "High"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "6"
+    }
+   ],
+   "teamId": 334,
+   "teamAbbreviation": "DET",
+   "playerGameHash": "334-6176012"
+  },
+  {
+   "draftableId": 43727349,
+   "firstName": "Breece",
+   "lastName": "Hall",
+   "displayName": "Breece Hall",
+   "shortName": "B. Hall",
+   "playerId": 1162537,
+   "playerDkId": 631855,
+   "position": "RB",
+   "rosterSlotId": 67,
+   "salary": 6200,
+   "status": "Q",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Recent",
+   "competition": {
+    "competitionId": 6176114,
+    "name": "NYJ @ TEN",
+    "startTime": "2026-09-13T17:00:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "13.9",
+     "sortValue": "13.9"
+    },
+    {
+     "id": -2,
+     "value": "17th",
+     "sortValue": "17",
+     "quality": "Medium"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "13"
+    }
+   ],
+   "teamId": 352,
+   "teamAbbreviation": "NYJ",
+   "playerGameHash": "1162537-6176114"
+  },
+  {
+   "draftableId": 43727350,
+   "firstName": "Breece",
+   "lastName": "Hall",
+   "displayName": "Breece Hall",
+   "shortName": "B. Hall",
+   "playerId": 1162537,
+   "playerDkId": 631855,
+   "position": "RB",
+   "rosterSlotId": 70,
+   "salary": 6200,
+   "status": "Q",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Recent",
+   "competition": {
+    "competitionId": 6176114,
+    "name": "NYJ @ TEN",
+    "startTime": "2026-09-13T17:00:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "13.9",
+     "sortValue": "13.9"
+    },
+    {
+     "id": -2,
+     "value": "17th",
+     "sortValue": "17",
+     "quality": "Medium"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "13"
+    }
+   ],
+   "teamId": 352,
+   "teamAbbreviation": "NYJ",
+   "playerGameHash": "1162537-6176114"
+  },
+  {
+   "draftableId": 43728526,
+   "firstName": "Jaguars",
+   "lastName": "",
+   "displayName": "Jaguars",
+   "shortName": "Jaguars",
+   "playerId": 365,
+   "playerDkId": 18489,
+   "position": "DST",
+   "rosterSlotId": 71,
+   "salary": 3400,
+   "status": "None",
+   "isSwappable": true,
+   "isDisabled": false,
+   "competition": {
+    "competitionId": 6176030,
+    "name": "CLE @ JAX",
+    "startTime": "2026-09-13T17:00:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "8.2",
+     "sortValue": "8.2"
+    },
+    {
+     "id": -2,
+     "value": "31st",
+     "sortValue": "31",
+     "quality": "High"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "7"
+    }
+   ],
+   "teamId": 365,
+   "teamAbbreviation": "JAX",
+   "playerGameHash": "365-6176030"
+  },
+  {
+   "draftableId": 43727235,
+   "firstName": "Joe",
+   "lastName": "Burrow",
+   "displayName": "Joe Burrow",
+   "shortName": "J. Burrow",
+   "playerId": 878785,
+   "playerDkId": 485441,
+   "position": "QB",
+   "rosterSlotId": 66,
+   "salary": 6900,
+   "status": "None",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Breaking",
+   "competition": {
+    "competitionId": 6175928,
+    "name": "TB @ CIN",
+    "startTime": "2026-09-13T17:00:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "18.2",
+     "sortValue": "18.2"
+    },
+    {
+     "id": -2,
+     "value": "31st",
+     "sortValue": "31",
+     "quality": "High"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "6"
+    }
+   ],
+   "teamId": 327,
+   "teamAbbreviation": "CIN",
+   "playerGameHash": "878785-6175928"
+  },
+  {
+   "draftableId": 43727355,
+   "firstName": "Travis",
+   "lastName": "Etienne Jr.",
+   "displayName": "Travis Etienne Jr.",
+   "shortName": "T. Etienne Jr.",
+   "playerId": 978577,
+   "playerDkId": 553669,
+   "position": "RB",
+   "rosterSlotId": 67,
+   "salary": 5900,
+   "status": "None",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Breaking",
+   "competition": {
+    "competitionId": 6176012,
+    "name": "NO @ DET",
+    "startTime": "2026-09-13T17:00:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "15.7",
+     "sortValue": "15.7"
+    },
+    {
+     "id": -2,
+     "value": "5th",
+     "sortValue": "5",
+     "quality": "Low"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "8"
+    }
+   ],
+   "teamId": 350,
+   "teamAbbreviation": "NO",
+   "playerGameHash": "978577-6176012"
+  },
+  {
+   "draftableId": 43727356,
+   "firstName": "Travis",
+   "lastName": "Etienne Jr.",
+   "displayName": "Travis Etienne Jr.",
+   "shortName": "T. Etienne Jr.",
+   "playerId": 978577,
+   "playerDkId": 553669,
+   "position": "RB",
+   "rosterSlotId": 70,
+   "salary": 5900,
+   "status": "None",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Breaking",
+   "competition": {
+    "competitionId": 6176012,
+    "name": "NO @ DET",
+    "startTime": "2026-09-13T17:00:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "15.7",
+     "sortValue": "15.7"
+    },
+    {
+     "id": -2,
+     "value": "5th",
+     "sortValue": "5",
+     "quality": "Low"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "8"
+    }
+   ],
+   "teamId": 350,
+   "teamAbbreviation": "NO",
+   "playerGameHash": "978577-6176012"
+  },
+  {
+   "draftableId": 43727635,
+   "firstName": "Justin",
+   "lastName": "Jefferson",
+   "displayName": "Justin Jefferson",
+   "shortName": "J. Jefferson",
+   "playerId": 1069535,
+   "playerDkId": 485454,
+   "position": "WR",
+   "rosterSlotId": 68,
+   "salary": 7300,
+   "status": "None",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Breaking",
+   "competition": {
+    "competitionId": 6175964,
+    "name": "GB @ MIN",
+    "startTime": "2026-09-13T20:25:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "12.4",
+     "sortValue": "12.4"
+    },
+    {
+     "id": -2,
+     "value": "18th",
+     "sortValue": "18",
+     "quality": "Medium"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "6"
+    }
+   ],
+   "teamId": 347,
+   "teamAbbreviation": "MIN",
+   "playerGameHash": "1069535-6175964"
+  },
+  {
+   "draftableId": 43727636,
+   "firstName": "Justin",
+   "lastName": "Jefferson",
+   "displayName": "Justin Jefferson",
+   "shortName": "J. Jefferson",
+   "playerId": 1069535,
+   "playerDkId": 485454,
+   "position": "WR",
+   "rosterSlotId": 70,
+   "salary": 7300,
+   "status": "None",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Breaking",
+   "competition": {
+    "competitionId": 6175964,
+    "name": "GB @ MIN",
+    "startTime": "2026-09-13T20:25:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "12.4",
+     "sortValue": "12.4"
+    },
+    {
+     "id": -2,
+     "value": "18th",
+     "sortValue": "18",
+     "quality": "Medium"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "6"
+    }
+   ],
+   "teamId": 347,
+   "teamAbbreviation": "MIN",
+   "playerGameHash": "1069535-6175964"
+  },
+  {
+   "draftableId": 43727283,
+   "firstName": "Teddy",
+   "lastName": "Bridgewater",
+   "displayName": "Teddy Bridgewater",
+   "shortName": "T. Bridgewater",
+   "playerId": 592195,
+   "playerDkId": 18260,
+   "position": "QB",
+   "rosterSlotId": 66,
+   "salary": 4000,
+   "status": "OUT",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "None",
+   "competition": {
+    "competitionId": 6176012,
+    "name": "NO @ DET",
+    "startTime": "2026-09-13T17:00:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "0.7",
+     "sortValue": "0.7"
+    },
+    {
+     "id": -2,
+     "value": "5th",
+     "sortValue": "5",
+     "quality": "Low"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "6"
+    }
+   ],
+   "teamId": 334,
+   "teamAbbreviation": "DET",
+   "playerGameHash": "592195-6176012"
+  },
+  {
+   "draftableId": 43727329,
+   "firstName": "Jonathan",
+   "lastName": "Taylor",
+   "displayName": "Jonathan Taylor",
+   "shortName": "J. Taylor",
+   "playerId": 1065406,
+   "playerDkId": 468700,
+   "position": "RB",
+   "rosterSlotId": 67,
+   "salary": 7300,
+   "status": "None",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Breaking",
+   "competition": {
+    "competitionId": 6175934,
+    "name": "BAL @ IND",
+    "startTime": "2026-09-13T17:00:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "22.3",
+     "sortValue": "22.3"
+    },
+    {
+     "id": -2,
+     "value": "20th",
+     "sortValue": "20",
+     "quality": "Medium"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "13"
+    }
+   ],
+   "teamId": 338,
+   "teamAbbreviation": "IND",
+   "playerGameHash": "1065406-6175934"
+  },
+  {
+   "draftableId": 43727330,
+   "firstName": "Jonathan",
+   "lastName": "Taylor",
+   "displayName": "Jonathan Taylor",
+   "shortName": "J. Taylor",
+   "playerId": 1065406,
+   "playerDkId": 468700,
+   "position": "RB",
+   "rosterSlotId": 70,
+   "salary": 7300,
+   "status": "None",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Breaking",
+   "competition": {
+    "competitionId": 6175934,
+    "name": "BAL @ IND",
+    "startTime": "2026-09-13T17:00:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "22.3",
+     "sortValue": "22.3"
+    },
+    {
+     "id": -2,
+     "value": "20th",
+     "sortValue": "20",
+     "quality": "Medium"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "13"
+    }
+   ],
+   "teamId": 338,
+   "teamAbbreviation": "IND",
+   "playerGameHash": "1065406-6175934"
+  },
+  {
+   "draftableId": 43727234,
+   "firstName": "Josh",
+   "lastName": "Allen",
+   "displayName": "Josh Allen",
+   "shortName": "J. Allen",
+   "playerId": 868199,
+   "playerDkId": 11370,
+   "position": "QB",
+   "rosterSlotId": 66,
+   "salary": 7000,
+   "status": "None",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Recent",
+   "competition": {
+    "competitionId": 6175952,
+    "name": "BUF @ HOU",
+    "startTime": "2026-09-13T17:00:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "23.3",
+     "sortValue": "23.3"
+    },
+    {
+     "id": -2,
+     "value": "2nd",
+     "sortValue": "2",
+     "quality": "Low"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "7"
+    }
+   ],
+   "teamId": 324,
+   "teamAbbreviation": "BUF",
+   "playerGameHash": "868199-6175952"
+  },
+  {
+   "draftableId": 43728219,
+   "firstName": "Colston",
+   "lastName": "Loveland",
+   "displayName": "Colston Loveland",
+   "shortName": "C. Loveland",
+   "playerId": 1378821,
+   "playerDkId": 877803,
+   "position": "TE",
+   "rosterSlotId": 69,
+   "salary": 5300,
+   "status": "None",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Recent",
+   "competition": {
+    "competitionId": 6176168,
+    "name": "CHI @ CAR",
+    "startTime": "2026-09-13T17:00:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "11.4",
+     "sortValue": "11.4"
+    },
+    {
+     "id": -2,
+     "value": "18th",
+     "sortValue": "18",
+     "quality": "Medium"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "10"
+    }
+   ],
+   "teamId": 326,
+   "teamAbbreviation": "CHI",
+   "playerGameHash": "1378821-6176168"
+  },
+  {
+   "draftableId": 43728220,
+   "firstName": "Colston",
+   "lastName": "Loveland",
+   "displayName": "Colston Loveland",
+   "shortName": "C. Loveland",
+   "playerId": 1378821,
+   "playerDkId": 877803,
+   "position": "TE",
+   "rosterSlotId": 70,
+   "salary": 5300,
+   "status": "None",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Recent",
+   "competition": {
+    "competitionId": 6176168,
+    "name": "CHI @ CAR",
+    "startTime": "2026-09-13T17:00:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "11.4",
+     "sortValue": "11.4"
+    },
+    {
+     "id": -2,
+     "value": "18th",
+     "sortValue": "18",
+     "quality": "Medium"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "10"
+    }
+   ],
+   "teamId": 326,
+   "teamAbbreviation": "CHI",
+   "playerGameHash": "1378821-6176168"
+  },
+  {
+   "draftableId": 43727665,
+   "firstName": "Alec",
+   "lastName": "Pierce",
+   "displayName": "Alec Pierce",
+   "shortName": "A. Pierce",
+   "playerId": 1107027,
+   "playerDkId": 640883,
+   "position": "WR",
+   "rosterSlotId": 68,
+   "salary": 5700,
+   "status": "OUT",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Recent",
+   "competition": {
+    "competitionId": 6175934,
+    "name": "BAL @ IND",
+    "startTime": "2026-09-13T17:00:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "12.6",
+     "sortValue": "12.6"
+    },
+    {
+     "id": -2,
+     "value": "28th",
+     "sortValue": "28",
+     "quality": "High"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "13"
+    }
+   ],
+   "teamId": 338,
+   "teamAbbreviation": "IND",
+   "playerGameHash": "1107027-6175934"
+  },
+  {
+   "draftableId": 43727666,
+   "firstName": "Alec",
+   "lastName": "Pierce",
+   "displayName": "Alec Pierce",
+   "shortName": "A. Pierce",
+   "playerId": 1107027,
+   "playerDkId": 640883,
+   "position": "WR",
+   "rosterSlotId": 70,
+   "salary": 5700,
+   "status": "OUT",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Recent",
+   "competition": {
+    "competitionId": 6175934,
+    "name": "BAL @ IND",
+    "startTime": "2026-09-13T17:00:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "12.6",
+     "sortValue": "12.6"
+    },
+    {
+     "id": -2,
+     "value": "28th",
+     "sortValue": "28",
+     "quality": "High"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "13"
+    }
+   ],
+   "teamId": 338,
+   "teamAbbreviation": "IND",
+   "playerGameHash": "1107027-6175934"
+  },
+  {
+   "draftableId": 43728217,
+   "firstName": "Trey",
+   "lastName": "McBride",
+   "displayName": "Trey McBride",
+   "shortName": "T. McBride",
+   "playerId": 1108161,
+   "playerDkId": 640885,
+   "position": "TE",
+   "rosterSlotId": 69,
+   "salary": 6800,
+   "status": "None",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Breaking",
+   "competition": {
+    "competitionId": 6176048,
+    "name": "ARI @ LAC",
+    "startTime": "2026-09-13T20:25:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "19.1",
+     "sortValue": "19.1"
+    },
+    {
+     "id": -2,
+     "value": "5th",
+     "sortValue": "5",
+     "quality": "Low"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "14"
+    }
+   ],
+   "teamId": 355,
+   "teamAbbreviation": "ARI",
+   "playerGameHash": "1108161-6176048"
+  },
+  {
+   "draftableId": 43728218,
+   "firstName": "Trey",
+   "lastName": "McBride",
+   "displayName": "Trey McBride",
+   "shortName": "T. McBride",
+   "playerId": 1108161,
+   "playerDkId": 640885,
+   "position": "TE",
+   "rosterSlotId": 70,
+   "salary": 6800,
+   "status": "None",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Breaking",
+   "competition": {
+    "competitionId": 6176048,
+    "name": "ARI @ LAC",
+    "startTime": "2026-09-13T20:25:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "19.1",
+     "sortValue": "19.1"
+    },
+    {
+     "id": -2,
+     "value": "5th",
+     "sortValue": "5",
+     "quality": "Low"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "14"
+    }
+   ],
+   "teamId": 355,
+   "teamAbbreviation": "ARI",
+   "playerGameHash": "1108161-6176048"
+  },
+  {
+   "draftableId": 43727324,
+   "firstName": "Skylar",
+   "lastName": "Thompson",
+   "displayName": "Skylar Thompson",
+   "shortName": "S. Thompson",
+   "playerId": 913829,
+   "playerDkId": 641142,
+   "position": "QB",
+   "rosterSlotId": 66,
+   "salary": 4000,
+   "status": "IR",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Breaking",
+   "competition": {
+    "competitionId": 6175934,
+    "name": "BAL @ IND",
+    "startTime": "2026-09-13T17:00:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": -2,
+     "value": "19th",
+     "sortValue": "19",
+     "quality": "Medium"
+    },
+    {
+     "id": 90,
+     "value": "-",
+     "sortValue": ""
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "13"
+    }
+   ],
+   "teamId": 366,
+   "teamAbbreviation": "BAL",
+   "playerGameHash": "913829-6175934"
+  },
+  {
+   "draftableId": 43727327,
+   "firstName": "Bijan",
+   "lastName": "Robinson",
+   "displayName": "Bijan Robinson",
+   "shortName": "B. Robinson",
+   "playerId": 1228244,
+   "playerDkId": 693112,
+   "position": "RB",
+   "rosterSlotId": 67,
+   "salary": 7700,
+   "status": "None",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Recent",
+   "competition": {
+    "competitionId": 6176144,
+    "name": "ATL @ PIT",
+    "startTime": "2026-09-13T17:00:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "23.2",
+     "sortValue": "23.2"
+    },
+    {
+     "id": -2,
+     "value": "11th",
+     "sortValue": "11",
+     "quality": "Medium"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "11"
+    }
+   ],
+   "teamId": 323,
+   "teamAbbreviation": "ATL",
+   "playerGameHash": "1228244-6176144"
+  },
+  {
+   "draftableId": 43727328,
+   "firstName": "Bijan",
+   "lastName": "Robinson",
+   "displayName": "Bijan Robinson",
+   "shortName": "B. Robinson",
+   "playerId": 1228244,
+   "playerDkId": 693112,
+   "position": "RB",
+   "rosterSlotId": 70,
+   "salary": 7700,
+   "status": "None",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Recent",
+   "competition": {
+    "competitionId": 6176144,
+    "name": "ATL @ PIT",
+    "startTime": "2026-09-13T17:00:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "23.2",
+     "sortValue": "23.2"
+    },
+    {
+     "id": -2,
+     "value": "11th",
+     "sortValue": "11",
+     "quality": "Medium"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "11"
+    }
+   ],
+   "teamId": 323,
+   "teamAbbreviation": "ATL",
+   "playerGameHash": "1228244-6176144"
+  },
+  {
+   "draftableId": 43727637,
+   "firstName": "Nico",
+   "lastName": "Collins",
+   "displayName": "Nico Collins",
+   "shortName": "N. Collins",
+   "playerId": 1074698,
+   "playerDkId": 560761,
+   "position": "WR",
+   "rosterSlotId": 68,
+   "salary": 7000,
+   "status": "None",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Breaking",
+   "competition": {
+    "competitionId": 6175952,
+    "name": "BUF @ HOU",
+    "startTime": "2026-09-13T17:00:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "15.1",
+     "sortValue": "15.1"
+    },
+    {
+     "id": -2,
+     "value": "12th",
+     "sortValue": "12",
+     "quality": "Medium"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "8"
+    }
+   ],
+   "teamId": 325,
+   "teamAbbreviation": "HOU",
+   "playerGameHash": "1074698-6175952"
+  },
+  {
+   "draftableId": 43727638,
+   "firstName": "Nico",
+   "lastName": "Collins",
+   "displayName": "Nico Collins",
+   "shortName": "N. Collins",
+   "playerId": 1074698,
+   "playerDkId": 560761,
+   "position": "WR",
+   "rosterSlotId": 70,
+   "salary": 7000,
+   "status": "None",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Breaking",
+   "competition": {
+    "competitionId": 6175952,
+    "name": "BUF @ HOU",
+    "startTime": "2026-09-13T17:00:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "15.1",
+     "sortValue": "15.1"
+    },
+    {
+     "id": -2,
+     "value": "12th",
+     "sortValue": "12",
+     "quality": "Medium"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "8"
+    }
+   ],
+   "teamId": 325,
+   "teamAbbreviation": "HOU",
+   "playerGameHash": "1074698-6175952"
+  },
+  {
+   "draftableId": 43727345,
+   "firstName": "Jeremiyah",
+   "lastName": "Love",
+   "displayName": "Jeremiyah Love",
+   "shortName": "J. Love",
+   "playerId": 1451501,
+   "playerDkId": 957946,
+   "position": "RB",
+   "rosterSlotId": 67,
+   "salary": 6400,
+   "status": "Q",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Recent",
+   "competition": {
+    "competitionId": 6176048,
+    "name": "ARI @ LAC",
+    "startTime": "2026-09-13T20:25:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": -2,
+     "value": "4th",
+     "sortValue": "4",
+     "quality": "Low"
+    },
+    {
+     "id": 90,
+     "value": "-",
+     "sortValue": ""
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "14"
+    }
+   ],
+   "teamId": 355,
+   "teamAbbreviation": "ARI",
+   "playerGameHash": "1451501-6176048"
+  },
+  {
+   "draftableId": 43727346,
+   "firstName": "Jeremiyah",
+   "lastName": "Love",
+   "displayName": "Jeremiyah Love",
+   "shortName": "J. Love",
+   "playerId": 1451501,
+   "playerDkId": 957946,
+   "position": "RB",
+   "rosterSlotId": 70,
+   "salary": 6400,
+   "status": "Q",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Recent",
+   "competition": {
+    "competitionId": 6176048,
+    "name": "ARI @ LAC",
+    "startTime": "2026-09-13T20:25:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": -2,
+     "value": "4th",
+     "sortValue": "4",
+     "quality": "Low"
+    },
+    {
+     "id": 90,
+     "value": "-",
+     "sortValue": ""
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "14"
+    }
+   ],
+   "teamId": 355,
+   "teamAbbreviation": "ARI",
+   "playerGameHash": "1451501-6176048"
+  },
+  {
+   "draftableId": 43727335,
+   "firstName": "De'Von",
+   "lastName": "Achane",
+   "displayName": "De'Von Achane",
+   "shortName": "D. Achane",
+   "playerId": 1231820,
+   "playerDkId": 706555,
+   "position": "RB",
+   "rosterSlotId": 67,
+   "salary": 7000,
+   "status": "None",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Recent",
+   "competition": {
+    "competitionId": 6176090,
+    "name": "MIA @ LV",
+    "startTime": "2026-09-13T20:25:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "20.9",
+     "sortValue": "20.9"
+    },
+    {
+     "id": -2,
+     "value": "21st",
+     "sortValue": "21",
+     "quality": "Medium"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "6"
+    }
+   ],
+   "teamId": 345,
+   "teamAbbreviation": "MIA",
+   "playerGameHash": "1231820-6176090"
+  },
+  {
+   "draftableId": 43727336,
+   "firstName": "De'Von",
+   "lastName": "Achane",
+   "displayName": "De'Von Achane",
+   "shortName": "D. Achane",
+   "playerId": 1231820,
+   "playerDkId": 706555,
+   "position": "RB",
+   "rosterSlotId": 70,
+   "salary": 7000,
+   "status": "None",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Recent",
+   "competition": {
+    "competitionId": 6176090,
+    "name": "MIA @ LV",
+    "startTime": "2026-09-13T20:25:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "20.9",
+     "sortValue": "20.9"
+    },
+    {
+     "id": -2,
+     "value": "21st",
+     "sortValue": "21",
+     "quality": "Medium"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "6"
+    }
+   ],
+   "teamId": 345,
+   "teamAbbreviation": "MIA",
+   "playerGameHash": "1231820-6176090"
+  },
+  {
+   "draftableId": 43727331,
+   "firstName": "James",
+   "lastName": "Cook III",
+   "displayName": "James Cook III",
+   "shortName": "J. Cook III",
+   "playerId": 1131012,
+   "playerDkId": 640895,
+   "position": "RB",
+   "rosterSlotId": 67,
+   "salary": 7200,
+   "status": "None",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Recent",
+   "competition": {
+    "competitionId": 6175952,
+    "name": "BUF @ HOU",
+    "startTime": "2026-09-13T17:00:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "18.8",
+     "sortValue": "18.8"
+    },
+    {
+     "id": -2,
+     "value": "8th",
+     "sortValue": "8",
+     "quality": "Low"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "7"
+    }
+   ],
+   "teamId": 324,
+   "teamAbbreviation": "BUF",
+   "playerGameHash": "1131012-6175952"
+  },
+  {
+   "draftableId": 43727332,
+   "firstName": "James",
+   "lastName": "Cook III",
+   "displayName": "James Cook III",
+   "shortName": "J. Cook III",
+   "playerId": 1131012,
+   "playerDkId": 640895,
+   "position": "RB",
+   "rosterSlotId": 70,
+   "salary": 7200,
+   "status": "None",
+   "isSwappable": true,
+   "isDisabled": false,
+   "newsStatus": "Recent",
+   "competition": {
+    "competitionId": 6175952,
+    "name": "BUF @ HOU",
+    "startTime": "2026-09-13T17:00:00.0000000Z"
+   },
+   "draftStatAttributes": [
+    {
+     "id": 90,
+     "value": "18.8",
+     "sortValue": "18.8"
+    },
+    {
+     "id": -2,
+     "value": "8th",
+     "sortValue": "8",
+     "quality": "Low"
+    }
+   ],
+   "playerAttributes": [
+    {
+     "name": "ByeWeek",
+     "value": "7"
+    }
+   ],
+   "teamId": 324,
+   "teamAbbreviation": "BUF",
+   "playerGameHash": "1131012-6175952"
+  }
+ ]
+}

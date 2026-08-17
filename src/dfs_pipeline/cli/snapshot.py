@@ -27,6 +27,8 @@ from pathlib import Path
 from dfs_pipeline import __version__
 from dfs_pipeline.adapters.odds_api import API_BASE
 from dfs_pipeline.adapters import (
+    DraftKingsApiAdapter,
+    DraftKingsApiError,
     DraftKingsCsvAdapter,
     FantasyProsCsvAdapter,
     ProjectionsCsvAdapter,
@@ -74,6 +76,20 @@ def build_parser() -> argparse.ArgumentParser:
         "--salaries",
         metavar="CSV",
         help="DraftKings salary export (DKSalaries.csv) to ingest",
+    )
+    src.add_argument(
+        "--slate-api",
+        action="store_true",
+        help="Capture the slate from DraftKings' draftables endpoint instead "
+             "of a CSV. Read-only and unauthenticated; the manual --salaries "
+             "import remains a fully supported equal.",
+    )
+    src.add_argument(
+        "--draft-group",
+        type=int,
+        metavar="ID",
+        help="Draft group to capture with --slate-api. Omit to auto-select the "
+             "largest non-simulated multi-game slate.",
     )
     src.add_argument(
         "--projections",
@@ -210,8 +226,15 @@ def main(argv: list[str] | None = None) -> int:
     if args.results and (args.season is None or args.week is None):
         parser.error("--results requires both --season and --week.")
 
-    if not any((args.salaries, args.odds, args.results, args.projections,
-                args.fantasypros)):
+    if args.salaries and args.slate_api:
+        parser.error(
+            "--salaries and --slate-api both capture a slate; choose one. "
+            "They produce identical records, so capturing both would only "
+            "duplicate the observations."
+        )
+
+    if not any((args.salaries, args.slate_api, args.odds, args.results,
+                args.projections, args.fantasypros)):
         parser.error(
             "nothing to capture. Supply --salaries, --projections, "
             "--fantasypros, --odds, and/or --results (see --help)."
@@ -245,6 +268,8 @@ def _run(args: argparse.Namespace, config: Config) -> int:
             try:
                 if args.salaries:
                     _capture_salaries(args, config, store, run)
+                if args.slate_api:
+                    _capture_slate_api(args, config, store, run)
                 if args.projections:
                     _capture_projections(args, config, store, run)
                 if args.fantasypros:
@@ -272,6 +297,9 @@ def _run(args: argparse.Namespace, config: Config) -> int:
             )
         return EXIT_DATA
     except MissingSecret as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_ERROR
+    except DraftKingsApiError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_ERROR
     except OddsApiError as exc:
@@ -323,6 +351,40 @@ def _capture_salaries(args, config: Config, store, run) -> None:
     print(f"  observations : {result.observations:,}")
     print(f"  effective_at : {result.effective_at}")
     print(f"  captured_at  : {result.captured_at}")
+    print(f"  artifact     : {result.artifact_sha256[:16]}...")
+
+
+def _capture_slate_api(args, config: Config, store, run) -> None:
+    adapter = DraftKingsApiAdapter(draft_group_id=args.draft_group)
+    result = ingest_slate(
+        store, adapter,
+        effective_at=args.effective_at,
+        captured_at=args.captured_at,
+        on_duplicate=config.on_duplicate,
+    )
+    run.record.inputs.append({
+        "kind": "dk_draftables_api",
+        "path": f"draftgroups/v1/draftgroups/{adapter.draft_group_id}/draftables",
+        "filename": None,
+        "sha256": result.artifact_sha256,
+        "byte_size": None,
+    })
+    run.results["slate"] = {
+        "source": result.source,
+        "draft_group_id": adapter.draft_group_id,
+        "players": result.players,
+        "defenses": result.defenses,
+        "entries": result.total_entries,
+        "games": result.games,
+        "observations": result.observations,
+        "effective_at": result.effective_at,
+        "captured_at": result.captured_at,
+    }
+    print(f"Slate (API): captured {result.total_entries} entries "
+          f"({result.players} players, {result.defenses} defenses) "
+          f"across {result.games} games.")
+    print(f"  draft group  : {adapter.draft_group_id}")
+    print(f"  observations : {result.observations:,}")
     print(f"  artifact     : {result.artifact_sha256[:16]}...")
 
 

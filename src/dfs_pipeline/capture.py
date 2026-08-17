@@ -230,6 +230,9 @@ def _observations_for(
             yield {**base, "metric": "dk_status", "value": p.status}
         if p.lock_time_utc is not None:
             yield {**base, "metric": "dk_lock_time", "value": p.lock_time_utc}
+        if p.stable_player_id is not None:
+            yield {**base, "metric": "dk_stable_player_id",
+                   "value": p.stable_player_id}
 
 
 @dataclass(frozen=True, slots=True)

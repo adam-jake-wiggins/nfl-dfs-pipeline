@@ -16,6 +16,12 @@ from dfs_pipeline.adapters.dk_csv import (
     REQUIRED_COLUMNS,
     DraftKingsCsvAdapter,
 )
+from dfs_pipeline.adapters.dk_api import (
+    ROSTER_SLOTS,
+    DraftGroup,
+    DraftKingsApiAdapter,
+    DraftKingsApiError,
+)
 from dfs_pipeline.adapters.fantasypros_csv import (
     LAYOUTS,
     SEASON_AVERAGE_METRIC,
@@ -49,4 +55,8 @@ __all__ = [
     "FantasyProsCsvAdapter",
     "LAYOUTS",
     "SEASON_AVERAGE_METRIC",
+    "DraftKingsApiAdapter",
+    "DraftKingsApiError",
+    "DraftGroup",
+    "ROSTER_SLOTS",
 ]

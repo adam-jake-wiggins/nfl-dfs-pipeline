@@ -154,6 +154,13 @@ class SlatePlayer:
     draft_group_id: int | None = None
     lock_time_utc: str | None = None
 
+    #: DraftKings' STABLE player identifier (`playerDkId`), as distinct from
+    #: `source_player_id` (`draftableId`), which is reissued every slate.
+    #: Only the API path can supply this, and it is what a persistent
+    #: crosswalk should key on -- a resolution made in Week 3 stays valid in
+    #: Week 12 by id rather than by name.
+    stable_player_id: str | None = None
+
     @property
     def opponent(self) -> str | None:
         return self.game.opponent_of(self.team)

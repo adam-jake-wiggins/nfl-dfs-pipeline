@@ -966,6 +966,104 @@ identical to a successful capture.
 
 459 tests, 99% coverage.
 
+### DraftKings draftables adapter — and a heuristic that picked the wrong contest
+
+`dfs-snapshot --slate-api` captures a slate directly. Live: 716 entries, 12
+games, 6,284 observations, auto-selecting draft group 151307.
+
+**Golden equivalence VERIFIED.** Against real captures of the same slate on
+both sides — 716 players, **zero salary conflicts**, and every shared field
+(name, position, salary, team, game, roster slots, kickoff, status) identical.
+Downstream code cannot tell which path produced a slate, which is the point.
+
+### The safety boundary is enforced by a test, not a promise
+
+The adapter must never authenticate, hold a session, or mutate anything.
+`test_no_authentication_code_exists` reads the module's own source and fails if
+`requests.post`, `requests.Session`, `cookiejar`, `password`, `authorization`
+or `bearer` appear in the body. A convention nobody checks is a convention that
+erodes; a future edit adding a login should be hard to make by accident.
+
+No session object at all — a session persists cookies, which is the first step
+toward carrying an identity. Plain per-call GETs make that impossible. The
+User-Agent identifies the tool honestly rather than impersonating a browser,
+and there is a test asserting it contains no browser string. Every failure
+message names the manual CSV import, because that path is a first-class equal,
+not a degraded mode.
+
+### The FLEX duplication trap
+
+The draftables response carries **1,317 rows for 716 players**. The excess is
+exactly 153 RB + 293 WR + 155 TE = 601, because DraftKings issues a *separate*
+`draftableId` per roster slot:
+
+```
+Jahmyr Gibbs  draftableId=43727325  rosterSlotId=67 (RB)    salary=8000
+Jahmyr Gibbs  draftableId=43727326  rosterSlotId=70 (FLEX)  salary=8000
+```
+
+Treating rows as players would invent 601 phantoms and could build a lineup
+containing the same person twice under two ids — contest-illegal, and
+invisible to every constraint check, because the solver sees two distinct ids.
+Rows are grouped by `playerDkId`, and the **position-slot** id is chosen as
+primary because that is the one the CSV carries; picking the FLEX id would make
+the two paths permanently irreconcilable.
+
+### A live run caught a heuristic guessing at something DraftKings states
+
+The first live run **failed**, and correctly. Auto-selection chose draft group
+146163 — 16 games, largest available — and every one of its 4,501 draftables
+had **no salary field at all**.
+
+146163 is a **Sit & Go: a snake draft.** Players are drafted in turns, not
+priced, so there are no salaries. My heuristic ("largest non-simulated
+multi-game slate") inferred contest format from game count and name, when the
+lobby payload labels it outright:
+
+| GameTypeId | Format |
+|---|---|
+| **1** | **Classic salary cap** |
+| 96 | Showdown (single game) |
+| 145 | Sit & Go (snake draft, no salaries) |
+| 158 / 159 | Madden Stream (simulated) |
+
+Selection now requires `GameTypeId == 1`, and auto-selection lands on 151307.
+Defence in depth: a missing salary no longer reports "missing name, position or
+salary" but names the likely cause — a draft-style contest — turning a
+confusing parse error into an actionable one.
+
+The lesson is worth stating plainly: **I inferred a structural property that
+the data declared explicitly.** The fixture could never have caught this,
+because I built the fixture from the slate I had already chosen correctly by
+hand.
+
+### A test-design defect worth recording
+
+Four capture tests **hit the live DraftKings endpoint**. `ingest_slate` calls
+`raw_bytes()`, which on the real adapter fetches. A suite that reaches the
+network fails offline, hammers someone else's servers, and silently changes
+behaviour week to week as slates roll over.
+
+Fixed with an `OfflineApiAdapter` subclass that replaces only fetching, keeping
+every line of parsing and validation under test. A guard test now monkeypatches
+`requests.get` to raise, so the regression cannot recur silently.
+
+### What this path knows that the CSV cannot
+
+- **`playerDkId`** — a stable player identifier. `draftableId` is reissued
+  every slate; this is not. It is what the Phase 1 crosswalk should key on, so
+  a resolution made in Week 3 stays valid in Week 12 by id rather than by name.
+- **Lock times as unambiguous UTC** (`2026-09-13T17:00:00Z`, `20:25:00Z`)
+  rather than the CSV's `01:00PM ET`, which must be parsed and resolved across
+  the daylight-saving boundary.
+- Draft group id and stable `competitionId` values.
+
+One parsing wrinkle: DraftKings writes **seven-digit** fractional seconds,
+which `datetime.fromisoformat` rejects. Truncated to six, with a test for each
+timestamp shape encountered.
+
+510 tests, 99% coverage. No test touches the network.
+
 ### Open items
 - Verify the bulk-upload CSV format against a real DK entries template
   (**BLOCKED** — needs slates to open).

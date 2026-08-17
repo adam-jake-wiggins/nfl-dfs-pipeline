@@ -720,3 +720,64 @@ def test_fantasypros_refuses_kickers_through_the_cli(paths, capsys):
         "--store", paths["store"], "--runs", paths["runs"],
     ]) == EXIT_DATA
     assert "no kicker slot" in capsys.readouterr().err
+
+
+# ---------------------------------------------------------------------------
+# The draftables API path through the CLI
+# ---------------------------------------------------------------------------
+
+DRAFTABLES = FIXTURES / "dk_draftables_sample.json"
+
+
+@pytest.fixture()
+def stub_slate_api(monkeypatch):
+    from dfs_pipeline.adapters import DraftKingsApiAdapter
+
+    class Offline(DraftKingsApiAdapter):
+        def raw_bytes(self):
+            self.draft_group_id = self.draft_group_id or 151307
+            return DRAFTABLES.read_bytes()
+
+    monkeypatch.setattr("dfs_pipeline.cli.snapshot.DraftKingsApiAdapter", Offline)
+    return Offline
+
+
+def test_slate_api_captures(paths, stub_slate_api, capsys):
+    assert main([
+        "--slate-api", "--draft-group", "151307",
+        "--store", paths["store"], "--runs", paths["runs"],
+        "--captured-at", "2026-09-11T18:00:00Z",
+    ]) == EXIT_OK
+    out = capsys.readouterr().out
+    assert "Slate (API): captured 27 entries" in out
+    assert "draft group  : 151307" in out
+
+    record = _run_json(_only_run_dir(paths))["results"]["slate"]
+    assert record["source"] == "DK_API"
+    assert record["draft_group_id"] == 151307
+
+
+def test_slate_api_and_csv_are_mutually_exclusive(capsys):
+    """Both capture a slate and produce identical records; running both would
+    only duplicate observations."""
+    with pytest.raises(SystemExit) as exc:
+        main(["--salaries", GOOD, "--slate-api"])
+    assert exc.value.code == 2
+    assert "choose one" in capsys.readouterr().err
+
+
+def test_api_failure_exits_one_and_names_the_fallback(paths, monkeypatch, capsys):
+    from dfs_pipeline.adapters import DraftKingsApiError
+
+    class Broken:
+        def __init__(self, *a, **k):
+            self.draft_group_id = None
+
+        def raw_bytes(self):
+            raise DraftKingsApiError("unreachable; use the manual DKSalaries.csv import")
+
+    monkeypatch.setattr("dfs_pipeline.cli.snapshot.DraftKingsApiAdapter", Broken)
+    assert main([
+        "--slate-api", "--store", paths["store"], "--runs", paths["runs"],
+    ]) == EXIT_ERROR
+    assert "DKSalaries.csv" in capsys.readouterr().err

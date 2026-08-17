@@ -119,7 +119,14 @@ uv sync --extra dev
 
 ## Usage
 
-Capture a slate and a betting snapshot in one command:
+Capture the slate straight from DraftKings (read-only, unauthenticated):
+
+```bash
+uv run dfs-snapshot --slate-api --odds
+```
+
+Or from a manually downloaded CSV — a fully supported equal, proven to
+produce identical records by golden test:
 
 ```bash
 uv run dfs-snapshot --salaries DKSalaries.csv --projections DFF_export.csv --odds
@@ -173,7 +180,7 @@ rejected.
 uv run pytest --cov=dfs_pipeline --cov-report=term-missing
 ```
 
-**VERIFIED (2026-08-17):** 459 tests, 100% statement coverage. The suite
+**VERIFIED (2026-08-17):** 510 tests, 100% statement coverage. The suite
 includes property-based tests over generated inputs, malformed-input fixtures
 asserting each failure names its file/row/column, and fixtures recorded from
 real DraftKings and Odds API responses. No test touches the network — a suite
