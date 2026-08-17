@@ -867,6 +867,105 @@ those columns later so the question is testable rather than argued.
 
 421 tests, 99% coverage.
 
+### FantasyPros as a second vendor — and three traps in one file format
+
+Added `FantasyProsCsvAdapter`, verified against real per-position exports.
+All five positions ingest: 633 rows, 2,532 observations.
+
+**Trap 1: column names repeat, so parsing must be positional.**
+
+```
+QB header: Player,Team,ATT,CMP,YDS,TDS,INTS,ATT,YDS,TDS,FL,FPTS
+                        ^^^          ^^^  ^^^
+                        passing      rushing
+```
+
+`csv.DictReader` silently keeps the *last* duplicate. Ask it for Jalen Hurts'
+`YDS` and it returns **27.3** — his rushing yards — while the passing value of
+217.5 is discarded. Every layout is now declared by index and the header is
+verified *exactly* before any row is read, so a changed header is a loud
+failure rather than a silent misread of every field. A test reproduces the
+DictReader bug directly, so the reason for the positional design cannot be
+optimised away later.
+
+**Trap 2: their FPTS column is half-PPR. DraftKings is full PPR.**
+
+Verified against their own component stats — every running back's published
+FPTS matches `base + 0.5 × receptions`:
+
+| Position | our DK re-score − their FPTS |
+|---|---|
+| QB | +0.00 to +0.43 |
+| RB | +1.8 to +2.7 |
+| **WR** | **+3.3 to +3.7** |
+| TE | +2.4 to +3.4 |
+
+Ja'Marr Chase differs by **+3.66 points**. The pattern is exactly 0.5 ×
+receptions, which is why quarterbacks barely move and receivers move a lot.
+Taking that column directly would under-project every pass-catcher,
+systematically, in a way that looks entirely reasonable.
+
+So the FPTS column is **ignored**. Their projected stat lines are scored with
+`dfs_pipeline.scoring` — the same canonical rules applied to realized nflverse
+results. One definition of DraftKings scoring now governs projections, results
+and the optimizer alike.
+
+The half-PPR test is written as a *comparative* fit rather than an absolute
+tolerance, because FantasyPros rounds each component to one decimal while
+computing FPTS from unrounded values, so reconstruction carries up to ~0.3 of
+rounding error. My first version used a tight absolute tolerance and failed on
+Christian McCaffrey at 0.23. The claim worth testing is which hypothesis fits
+best, and half-PPR wins by more than 4×.
+
+**Trap 3: the same player appears in two position files.**
+
+Ingesting RB then TE raised a UNIQUE violation. The cause was real data, not a
+bug in the store:
+
+| Player | RB file | TE file |
+|---|---|---|
+| Connor Heyward (LV) | 0.50 | 0.54 |
+| Riley Nowakowski (PIT) | 0.50 | 0.39 |
+| Max Bredeson (MIN) | 0.35 | 0.18 |
+
+FantasyPros projects these fullback/H-back types at two positions with
+different numbers, and **both are real** — they describe different usages.
+Keying on name alone made one file silently overwrite the other. Subject keys
+now carry team and position.
+
+Worth noting *how* this was found: the store's append-only UNIQUE constraint
+caught what the adapter had missed. Enforcement at the storage layer earned
+its keep — application-level dedup would have had no reason to look.
+
+### Season averages are not weekly projections
+
+These exports are per-game averages for the whole season — Hurts at 19.9
+whether he faces the best or worst pass defense. That is a prior, not a slate
+projection, and filing it as one would be precisely the plausible-looking
+corruption this project keeps guarding against.
+
+They are therefore stored under a **distinct metric**,
+`projection_season_avg_dk_points`, with a test asserting they never leak into
+the weekly `projection_dk_points` series. When FantasyPros' weekly export
+appears in September, only the metric name changes.
+
+**The underlying reason both vendors looked thin: it is August 17 and the
+season starts September 10.** Nobody publishes weekly projections yet. DFF's
+nine-row export and FantasyPros' season averages are the same fact wearing two
+costumes. Neither vendor is broken; the calendar is.
+
+### Two exports deliberately refused
+
+- **Kickers.** DraftKings NFL Classic has no kicker slot, so those ~40 players
+  could never appear in a lineup.
+- **FLEX.** It duplicates the RB, WR and TE files; ingesting both would record
+  two projections for every flex-eligible player.
+
+Both refusals name their reason in the error, because a silent skip would look
+identical to a successful capture.
+
+459 tests, 99% coverage.
+
 ### Open items
 - Verify the bulk-upload CSV format against a real DK entries template
   (**BLOCKED** — needs slates to open).

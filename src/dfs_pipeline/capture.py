@@ -381,7 +381,13 @@ def ingest_projections(
             )
             effective = captured
 
-    observations = list(_projection_observations(rows, source.source_name, effective, captured))
+    # Adapters may declare their own metric. A season per-game average is a
+    # different quantity from a weekly slate projection and must not share a
+    # metric name with one.
+    metric = getattr(source, "metric_name", "projection_dk_points")
+    observations = list(
+        _projection_observations(rows, source.source_name, effective, captured, metric)
+    )
     written = store.record_many(
         observations, artifact_sha256=sha, on_duplicate=on_duplicate
     )
@@ -397,7 +403,10 @@ def ingest_projections(
     )
 
 
-def _projection_observations(rows, source: str, effective: str, captured: str):
+def _projection_observations(
+    rows, source: str, effective: str, captured: str,
+    metric: str = "projection_dk_points",
+):
     """Flatten projection rows into narrow observations.
 
     Keyed on the normalized name, NOT on a DraftKings id. The projection is
@@ -413,7 +422,7 @@ def _projection_observations(rows, source: str, effective: str, captured: str):
             effective_at=effective,
             captured_at=captured,
         )
-        yield {**base, "metric": "projection_dk_points", "value": float(r.projection)}
+        yield {**base, "metric": metric, "value": float(r.projection)}
         # The source's own spelling is preserved: the normalized key is for
         # joining, the original is what a human needs when reviewing a miss.
         yield {**base, "metric": "projection_source_name", "value": r.name}

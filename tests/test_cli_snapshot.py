@@ -682,3 +682,41 @@ def test_all_four_sources_can_run_in_one_invocation(paths, stub_odds, monkeypatc
         assert label in out, f"{label} missing from combined run"
     results = _run_json(_only_run_dir(paths))["results"]
     assert set(results) == {"slate", "projections", "odds", "results"}
+
+
+# ---------------------------------------------------------------------------
+# FantasyPros through the CLI
+# ---------------------------------------------------------------------------
+
+def test_fantasypros_positions_capture(paths, capsys):
+    args = ["--store", paths["store"], "--runs", paths["runs"],
+            "--captured-at", "2026-08-17T18:00:00Z"]
+    for position in ("QB", "RB", "TE"):
+        args += ["--fantasypros",
+                 f"{position}={FIXTURES / f'fantasypros_{position.lower()}.csv'}"]
+    assert main(args) == EXIT_OK
+
+    out = capsys.readouterr().out
+    assert "FantasyPros QB" in out
+    assert "season per-game averages" in out
+
+    record = _run_json(_only_run_dir(paths))["results"]["fantasypros"]
+    assert record["files"] == 3
+    assert record["rows"] == 36
+    assert record["metric"] == "projection_season_avg_dk_points"
+
+
+def test_fantasypros_spec_must_be_position_equals_path(paths, capsys):
+    assert main([
+        "--fantasypros", str(FIXTURES / "fantasypros_qb.csv"),
+        "--store", paths["store"], "--runs", paths["runs"],
+    ]) == EXIT_DATA
+    assert "POSITION=PATH" in capsys.readouterr().err
+
+
+def test_fantasypros_refuses_kickers_through_the_cli(paths, capsys):
+    assert main([
+        "--fantasypros", f"K={FIXTURES / 'fantasypros_qb.csv'}",
+        "--store", paths["store"], "--runs", paths["runs"],
+    ]) == EXIT_DATA
+    assert "no kicker slot" in capsys.readouterr().err

@@ -28,6 +28,7 @@ from dfs_pipeline import __version__
 from dfs_pipeline.adapters.odds_api import API_BASE
 from dfs_pipeline.adapters import (
     DraftKingsCsvAdapter,
+    FantasyProsCsvAdapter,
     ProjectionsCsvAdapter,
     OddsApiAdapter,
     OddsApiError,
@@ -85,6 +86,14 @@ def build_parser() -> argparse.ArgumentParser:
         default="DFF",
         help="Which vendor produced --projections (default: DFF). Each vendor "
              "is stored as its own source so their series never merge.",
+    )
+    src.add_argument(
+        "--fantasypros",
+        metavar="CSV",
+        action="append",
+        help="FantasyPros per-position export. Repeatable, once per position. "
+             "Format is POSITION=PATH, e.g. --fantasypros QB=fp_qb.csv. These "
+             "are season per-game averages, stored under a distinct metric.",
     )
     src.add_argument(
         "--odds",
@@ -201,10 +210,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.results and (args.season is None or args.week is None):
         parser.error("--results requires both --season and --week.")
 
-    if not args.salaries and not args.odds and not args.results and not args.projections:
+    if not any((args.salaries, args.odds, args.results, args.projections,
+                args.fantasypros)):
         parser.error(
-            "nothing to capture. Supply --salaries CSV, --projections CSV, "
-            "--odds, and/or --results (see --help)."
+            "nothing to capture. Supply --salaries, --projections, "
+            "--fantasypros, --odds, and/or --results (see --help)."
         )
 
     return _run(args, config)
@@ -237,6 +247,8 @@ def _run(args: argparse.Namespace, config: Config) -> int:
                     _capture_salaries(args, config, store, run)
                 if args.projections:
                     _capture_projections(args, config, store, run)
+                if args.fantasypros:
+                    _capture_fantasypros(args, config, store, run)
                 if args.odds:
                     _capture_odds(args, config, store, run)
                 if args.results:
@@ -350,6 +362,43 @@ def _capture_projections(args, config: Config, store, run) -> None:
     print(f"  artifact     : {result.artifact_sha256[:16]}...")
     if report:
         _print_match_report(report)
+
+
+def _capture_fantasypros(args, config: Config, store, run) -> None:
+    total_rows = total_obs = 0
+    for spec in args.fantasypros:
+        position, _, path = spec.partition("=")
+        if not path:
+            raise SlateSchemaError(
+                spec, "expected POSITION=PATH, e.g. QB=fp_qb.csv"
+            )
+        adapter = FantasyProsCsvAdapter(path, position=position)
+        result = ingest_projections(
+            store, adapter,
+            effective_at=args.effective_at,
+            captured_at=args.captured_at,
+            original_filename=Path(path).name,
+            on_duplicate=config.on_duplicate,
+        )
+        run.record_input(
+            path, sha256=result.artifact_sha256,
+            byte_size=len(adapter.raw_bytes()),
+            kind=f"fantasypros_{position.lower()}_csv",
+        )
+        total_rows += result.rows
+        total_obs += result.observations
+        print(f"FantasyPros {position.upper():<4}: {result.rows} rows "
+              f"({result.observations:,} observations)")
+
+    run.results["fantasypros"] = {
+        "rows": total_rows,
+        "observations": total_obs,
+        "metric": FantasyProsCsvAdapter.metric_name,
+        "files": len(args.fantasypros),
+    }
+    print(f"  stored as    : {FantasyProsCsvAdapter.metric_name}")
+    print(f"  NOTE         : season per-game averages, not weekly slate "
+          f"projections.")
 
 
 def _match_report(args, projection_rows) -> dict | None:

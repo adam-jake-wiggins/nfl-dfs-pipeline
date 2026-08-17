@@ -16,6 +16,11 @@ from dfs_pipeline.adapters.dk_csv import (
     REQUIRED_COLUMNS,
     DraftKingsCsvAdapter,
 )
+from dfs_pipeline.adapters.fantasypros_csv import (
+    LAYOUTS,
+    SEASON_AVERAGE_METRIC,
+    FantasyProsCsvAdapter,
+)
 from dfs_pipeline.adapters.projections_csv import (
     ProjectionRow,
     ProjectionsCsvAdapter,
@@ -41,4 +46,7 @@ __all__ = [
     "TeamOdds",
     "ProjectionRow",
     "ProjectionsCsvAdapter",
+    "FantasyProsCsvAdapter",
+    "LAYOUTS",
+    "SEASON_AVERAGE_METRIC",
 ]
