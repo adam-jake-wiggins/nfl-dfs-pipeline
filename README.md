@@ -122,8 +122,14 @@ uv sync --extra dev
 Capture a slate and a betting snapshot in one command:
 
 ```bash
-uv run dfs-snapshot --salaries DKSalaries.csv --odds
+uv run dfs-snapshot --salaries DKSalaries.csv --projections DFF_export.csv --odds
 ```
+
+When both a slate and projections are supplied, every run prints a **match
+report** — the share of slate players with a projection, and a warning
+naming any player above $5,000 without one. The prototype's worst defect was
+a silent name-match failure; a match rate nobody reports is a match rate
+nobody checks.
 
 Score a completed week from nflverse at DraftKings Classic rules:
 
@@ -167,7 +173,7 @@ rejected.
 uv run pytest --cov=dfs_pipeline --cov-report=term-missing
 ```
 
-**VERIFIED (2026-08-17):** 343 tests, 100% statement coverage. The suite
+**VERIFIED (2026-08-17):** 421 tests, 100% statement coverage. The suite
 includes property-based tests over generated inputs, malformed-input fixtures
 asserting each failure names its file/row/column, and fixtures recorded from
 real DraftKings and Odds API responses. No test touches the network — a suite

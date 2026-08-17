@@ -28,11 +28,18 @@ from dfs_pipeline import __version__
 from dfs_pipeline.adapters.odds_api import API_BASE
 from dfs_pipeline.adapters import (
     DraftKingsCsvAdapter,
+    ProjectionsCsvAdapter,
     OddsApiAdapter,
     OddsApiError,
     SlateSchemaError,
 )
-from dfs_pipeline.capture import ingest_odds, ingest_results, ingest_slate
+from dfs_pipeline.capture import (
+    ingest_odds,
+    ingest_projections,
+    ingest_results,
+    ingest_slate,
+)
+from dfs_pipeline.names import normalize_name
 from dfs_pipeline.secrets import MissingSecret, read_odds_api_key
 from dfs_pipeline.config import Config, ConfigError, load_config
 from dfs_pipeline.runs import RunDirectory
@@ -66,6 +73,18 @@ def build_parser() -> argparse.ArgumentParser:
         "--salaries",
         metavar="CSV",
         help="DraftKings salary export (DKSalaries.csv) to ingest",
+    )
+    src.add_argument(
+        "--projections",
+        metavar="CSV",
+        help="Projection export to ingest (Daily Fantasy Fuel, Stokastic, etc.)",
+    )
+    src.add_argument(
+        "--projections-source",
+        metavar="NAME",
+        default="DFF",
+        help="Which vendor produced --projections (default: DFF). Each vendor "
+             "is stored as its own source so their series never merge.",
     )
     src.add_argument(
         "--odds",
@@ -182,10 +201,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.results and (args.season is None or args.week is None):
         parser.error("--results requires both --season and --week.")
 
-    if not args.salaries and not args.odds and not args.results:
+    if not args.salaries and not args.odds and not args.results and not args.projections:
         parser.error(
-            "nothing to capture. Supply --salaries CSV, --odds, and/or "
-            "--results (see --help)."
+            "nothing to capture. Supply --salaries CSV, --projections CSV, "
+            "--odds, and/or --results (see --help)."
         )
 
     return _run(args, config)
@@ -216,6 +235,8 @@ def _run(args: argparse.Namespace, config: Config) -> int:
             try:
                 if args.salaries:
                     _capture_salaries(args, config, store, run)
+                if args.projections:
+                    _capture_projections(args, config, store, run)
                 if args.odds:
                     _capture_odds(args, config, store, run)
                 if args.results:
@@ -291,6 +312,105 @@ def _capture_salaries(args, config: Config, store, run) -> None:
     print(f"  effective_at : {result.effective_at}")
     print(f"  captured_at  : {result.captured_at}")
     print(f"  artifact     : {result.artifact_sha256[:16]}...")
+
+
+def _capture_projections(args, config: Config, store, run) -> None:
+    adapter = ProjectionsCsvAdapter(
+        args.projections, source_name=args.projections_source
+    )
+    rows = adapter.load()
+    result = ingest_projections(
+        store, adapter,
+        effective_at=args.effective_at,
+        captured_at=args.captured_at,
+        original_filename=Path(args.projections).name,
+        on_duplicate=config.on_duplicate,
+    )
+    run.record_input(
+        args.projections,
+        sha256=result.artifact_sha256,
+        byte_size=len(adapter.raw_bytes()),
+        kind="projections_csv",
+    )
+    report = _match_report(args, rows)
+    run.results["projections"] = {
+        "source": result.source,
+        "rows": result.rows,
+        "with_ownership": result.with_ownership,
+        "observations": result.observations,
+        "effective_at": result.effective_at,
+        "captured_at": result.captured_at,
+        **({"match": report} if report else {}),
+    }
+
+    print(f"Projections ({result.source}): {result.rows} rows, "
+          f"{result.with_ownership} with ownership.")
+    print(f"  observations : {result.observations:,}")
+    print(f"  effective_at : {result.effective_at}")
+    print(f"  artifact     : {result.artifact_sha256[:16]}...")
+    if report:
+        _print_match_report(report)
+
+
+def _match_report(args, projection_rows) -> dict | None:
+    """Compare projection names against the slate, if a slate was supplied.
+
+    The prototype's worst defect was a silent name-match failure that degraded
+    projections invisibly. A match rate that is never reported is a match rate
+    nobody checks, so this prints on every run where both inputs are present.
+
+    This is a NAME-level check only. Real identity resolution against nflverse
+    ids is the crosswalk's job; this is the loud early-warning that something
+    has drifted.
+    """
+    if not args.salaries:
+        return None
+
+    slate = DraftKingsCsvAdapter(args.salaries).load()
+    slate_players = [p for p in slate if not p.is_defense]
+    slate_keys = {normalize_name(p.name): p for p in slate_players}
+
+    projected = {r.normalized_name for r in projection_rows}
+    matched = projected & set(slate_keys)
+    unmatched_projections = sorted(projected - set(slate_keys))
+
+    # Unmatched slate players matter most above a salary floor: a missing
+    # projection for a $3,000 punt is noise, for a $8,000 player it is a hole.
+    unmatched_slate = [
+        p for key, p in slate_keys.items() if key not in projected
+    ]
+    expensive_gaps = sorted(
+        (p for p in unmatched_slate if p.salary >= 5000),
+        key=lambda p: -p.salary,
+    )
+
+    return {
+        "slate_players": len(slate_players),
+        "projection_rows": len(projection_rows),
+        "matched": len(matched),
+        "match_rate": round(len(matched) / max(1, len(slate_players)), 4),
+        "unmatched_projections": unmatched_projections[:25],
+        "unmatched_slate_over_5000": [
+            {"name": p.name, "salary": p.salary, "position": p.position}
+            for p in expensive_gaps[:25]
+        ],
+    }
+
+
+def _print_match_report(report: dict) -> None:
+    rate = report["match_rate"]
+    print(f"  match rate   : {rate:.1%} "
+          f"({report['matched']}/{report['slate_players']} slate players)")
+    gaps = report["unmatched_slate_over_5000"]
+    if gaps:
+        print(f"  WARNING: {len(gaps)} slate player(s) at $5,000+ have no projection:")
+        for g in gaps[:8]:
+            print(f"    ${g['salary']:>6,}  {g['name']} ({g['position']})")
+    orphans = report["unmatched_projections"]
+    if orphans:
+        print(f"  {len(orphans)} projection name(s) matched no slate player, e.g.:")
+        for o in orphans[:5]:
+            print(f"    {o}")
 
 
 def _capture_odds(args, config: Config, store, run) -> None:

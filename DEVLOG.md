@@ -760,6 +760,113 @@ earn.
 
 348 tests, 99% coverage.
 
+### Projections ingest — and the real DFF export corrected three assumptions
+
+The last unrecoverable stream is now captured. A projection as it stood on
+Saturday cannot be bought on Monday, so this closes the Phase 0 gap that
+mattered most.
+
+**A real Daily Fantasy Fuel export arrived mid-build and rejected my reader.**
+That rejection was the design working. DFF's actual columns are
+`ppg_projection` and `ownership_projection` — neither resembling the obvious
+guess — and the error named every alias tried plus every header present, which
+turned a potential investigation into a one-line fix. A lenient reader would
+have guessed a column and produced plausible garbage; that is the failure this
+project treats as worst.
+
+Three corrections the real file forced:
+
+1. **`ppg_projection` / `ownership_projection`** added as aliases. Schema moved
+   UNVERIFIED → **VERIFIED 2026-08-17**.
+2. **`value_projection` deliberately excluded.** It is points per $1,000 of
+   salary, not projected points. Reading it would yield numbers around 3.0 —
+   entirely plausible, entirely wrong. There is a test asserting it stays out.
+3. **`game_date` must never become `effective_at`.** It names the day the games
+   are played, not when the projection was computed, and it sits in the
+   *future* relative to capture. Treating it as `effective_at` would assert we
+   knew Sunday's numbers weeks early — and the store's clock-skew CHECK would
+   have rejected the row outright. My own fixture had encoded exactly this
+   wrong assumption (`slate_date` as a timestamp); the real file exposed it.
+   Verified: a real DFF export states no computation time at all, so
+   `effective_at` honestly defaults to `captured_at`.
+
+The export itself was 9 rows, all `injury_status = O`, all projections 0.0, no
+ownership — a filtered slice, not a projection set, consistent with the site
+being glitchy. Capture does not care: recording what the vendor actually served
+is the job, and the match report is where a thin file becomes visible.
+
+### Three sources, three capture times, three answers
+
+The most striking artefact of the day, from real data:
+
+| Player | DK CSV 11:20 | DK API 12:00 | DFF 12:31 |
+|---|---|---|---|
+| **Chris Bell** | *(clear)* | **Q** | **O** |
+| Alec Pierce | OUT | OUT | O |
+| Tank Bigsby | *(clear)* | **Q** | — |
+
+Chris Bell's designation escalated twice inside 70 minutes. Any single-timestamp
+store would have silently kept whichever it saw last, and a backtest would have
+believed we knew on Saturday morning what we only learned Saturday lunchtime.
+This is the bitemporal argument, observed rather than asserted.
+
+### Name normalization
+
+Projections arrive keyed by name, which the handoff calls the biggest failure
+risk. `dfs_pipeline.names` produces a deterministic key: strip accents,
+casefold, delete periods and apostrophes (`C.J.` → `cj`, `Ja'Marr` → `jamarr`),
+convert hyphens to spaces (`Croskey-Merritt` matches `Croskey Merritt`), drop
+trailing generational suffixes (`Travis Etienne Jr.` → `travis etienne`).
+
+**Validated on 692 real players: zero collisions.** That is the property that
+matters — merging two people is far worse than failing to match one, because it
+attaches one player's projection to another's salary, silently.
+
+The module is explicitly *not* a cross-source matcher. It provides a stable key
+*within* a source so next week's capture aligns with this week's history.
+Resolving names onto nflverse ids needs team and position agreement, a
+persistent crosswalk, and a human for the residue — that is Phase 1.
+
+Where two rows share a name key and team/position cannot separate them, the
+adapter **raises** rather than merging. Two players genuinely can share a name
+on one slate.
+
+### The match report
+
+The prototype's worst defect was a silent name-match failure that degraded
+projections invisibly. So when both a slate and projections are supplied, every
+run prints:
+
+```
+  match rate   : 99.4% (688/692 slate players)
+  WARNING: 4 slate player(s) at $5,000+ have no projection:
+    $ 8,000  Jahmyr Gibbs (RB)
+```
+
+Unmatched players are reported *above a salary floor* — a missing $3,000 punt is
+noise, a missing $8,000 player is a hole. Orphan projection names are listed
+too. A match rate nobody reports is a match rate nobody checks.
+
+Verified against the real 12-game slate with four expensive players deliberately
+withheld: all four were named, both phantom rows were flagged.
+
+### Design notes
+
+**Each vendor is its own source.** DFF and FantasyPros never merge into a
+consensus at capture time — vendors disagreeing is signal, and averaging
+destroys it irreversibly. Consensus is a modelling decision, and modelling
+belongs downstream of capture.
+
+**FantasyPros remains BLOCKED** pending an API key.
+
+Follow-up noted: the real DFF export also carries `spread`, `over_under` and
+`implied_team_score`. That is direct evidence for the double-counting caveat in
+`dk_vegas_adjust.py` — DFF projections already incorporate Vegas, so applying a
+full-strength market adjustment on top of them counts it twice. Worth capturing
+those columns later so the question is testable rather than argued.
+
+421 tests, 99% coverage.
+
 ### Open items
 - Verify the bulk-upload CSV format against a real DK entries template
   (**BLOCKED** — needs slates to open).

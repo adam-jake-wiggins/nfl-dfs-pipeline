@@ -1,0 +1,10 @@
+first_name,last_name,position,injury_status,week,game_date,slate,team,opp,spread,over_under,implied_team_score,salary,L5_dvp_rank,L5_fppg_avg,L10_fppg_avg,szn_fppg_avg,ppg_projection,value_projection,ownership_projection
+Teddy,Bridgewater,QB,O,1,2026-09-13,,DET,NO,-7.5,48.5,28,4000,11,0.6,4.8,,0.0,0.00,
+Mason,Tipton,WR,O,1,2026-09-13,,NO,DET,+7.5,48.5,20.5,3000,7,4.1,2.4,,0.0,0.00,
+Ja'Lynn,Polk,WR,O,1,2026-09-13,,NO,DET,+7.5,48.5,20.5,3000,7,0.3,1.0,,0.0,0.00,
+Brock,Rechsteiner,WR,O,1,2026-09-13,,NO,DET,+7.5,48.5,20.5,3000,7,,,,0.0,0.00,
+Tyrell,Shavers,WR,O,1,2026-09-13,,BUF,HOU,-1.5,45.5,23.5,3000,3,6.5,4.8,,0.0,0.00,
+Alec,Pierce,WR,O,1,2026-09-13,,IND,BAL,+3.5,48.5,22.5,5700,24,14.5,14.2,,0.0,0.00,
+Tip,Reiman,TE,O,1,2026-09-13,,ARI,LAC,+10.5,45.5,17.5,2500,8,1.0,1.2,,0.0,0.00,
+Chris,Bell,WR,O,1,2026-09-13,,MIA,LV,+4.5,40.5,18,3200,27,,,,0.0,0.00,
+Luke,Musgrave,TE,O,1,2026-09-13,,GB,MIN,-0.5,45.5,23,3000,14,5.1,4.1,,0.0,0.00,

@@ -571,3 +571,114 @@ def test_results_failure_exits_three(paths, monkeypatch, capsys):
         "--store", paths["store"], "--runs", paths["runs"],
     ]) == EXIT_DATA
     assert "no play-by-play" in capsys.readouterr().err
+
+
+# ---------------------------------------------------------------------------
+# The projections path, and the match report
+# ---------------------------------------------------------------------------
+
+PROJ_DFF = str(FIXTURES / "projections_dff_shape.csv")
+REAL_SHAPE = str(FIXTURES / "dk_salaries_real_shape.csv")
+
+
+def test_projections_capture_records(paths, capsys):
+    assert main([
+        "--projections", PROJ_DFF, "--projections-source", "DFF",
+        "--store", paths["store"], "--runs", paths["runs"],
+        "--captured-at", "2026-09-11T18:00:00Z",
+    ]) == EXIT_OK
+    out = capsys.readouterr().out
+    assert "Projections (DFF): 22 rows" in out
+    with SnapshotStore.open(paths["store"], create=False) as store:
+        assert len(store.as_of("2026-09-12T00:00:00Z",
+                               metric="projection_dk_points")) == 22
+
+
+def test_vendor_name_defaults_and_can_be_overridden(paths, capsys):
+    main(["--projections", PROJ_DFF, "--projections-source", "STOKASTIC",
+          "--store", paths["store"], "--runs", paths["runs"],
+          "--captured-at", "2026-09-11T18:00:00Z"])
+    assert "Projections (STOKASTIC)" in capsys.readouterr().out
+
+
+def test_match_report_appears_when_a_slate_is_also_supplied(paths, capsys):
+    """The prototype's worst defect was a silent name-match failure.
+
+    A match rate nobody reports is a match rate nobody checks, so it prints on
+    every run where both inputs are present.
+    """
+    main([
+        "--salaries", REAL_SHAPE, "--projections", PROJ_DFF,
+        "--store", paths["store"], "--runs", paths["runs"],
+        "--captured-at", "2026-09-11T18:00:00Z",
+    ])
+    out = capsys.readouterr().out
+    assert "match rate" in out
+
+    report = _run_json(_only_run_dir(paths))["results"]["projections"]["match"]
+    assert report["slate_players"] > 0
+    assert 0.0 <= report["match_rate"] <= 1.0
+
+
+def test_match_report_is_absent_without_a_slate(paths, capsys):
+    main(["--projections", PROJ_DFF, "--store", paths["store"],
+          "--runs", paths["runs"], "--captured-at", "2026-09-11T18:00:00Z"])
+    assert "match rate" not in capsys.readouterr().out
+    assert "match" not in _run_json(_only_run_dir(paths))["results"]["projections"]
+
+
+def test_expensive_unmatched_players_are_warned_about(paths, capsys, tmp_path):
+    """A missing $3,000 punt is noise; a missing $8,000 player is a hole."""
+    target = tmp_path / "sparse.csv"
+    target.write_text("Name,Projection\nNobody Here,10.0\n")
+    main([
+        "--salaries", REAL_SHAPE, "--projections", str(target),
+        "--store", paths["store"], "--runs", paths["runs"],
+        "--captured-at", "2026-09-11T18:00:00Z",
+    ])
+    out = capsys.readouterr().out
+    assert "WARNING" in out
+    assert "have no projection" in out
+
+
+def test_projection_names_matching_nothing_are_reported(paths, capsys, tmp_path):
+    target = tmp_path / "ghosts.csv"
+    target.write_text("Name,Projection\nGhost Player,10.0\nAnother Phantom,8.0\n")
+    main([
+        "--salaries", REAL_SHAPE, "--projections", str(target),
+        "--store", paths["store"], "--runs", paths["runs"],
+        "--captured-at", "2026-09-11T18:00:00Z",
+    ])
+    assert "matched no slate player" in capsys.readouterr().out
+
+
+def test_malformed_projections_exit_three(paths, capsys):
+    assert main([
+        "--projections", str(FIXTURES / "projections_bad_number.csv"),
+        "--store", paths["store"], "--runs", paths["runs"],
+    ]) == EXIT_DATA
+    assert "is not a number" in capsys.readouterr().err
+
+
+def test_all_four_sources_can_run_in_one_invocation(paths, stub_odds, monkeypatch, capsys):
+    """A weekly bundle should be one command, not four."""
+    from dfs_pipeline.results import PlayerResult
+
+    monkeypatch.setattr(
+        "dfs_pipeline.results.load_and_score_week",
+        lambda season, week: (
+            [PlayerResult(2025, 1, "player", "00-0000001", "X", "KC", "BUF", "QB", 20.0)],
+            b"{}",
+        ),
+    )
+    assert main([
+        "--salaries", REAL_SHAPE, "--projections", PROJ_DFF, "--odds",
+        "--results", "--season", "2025", "--week", "1",
+        "--store", paths["store"], "--runs", paths["runs"],
+        "--captured-at", "2026-09-11T18:00:00Z",
+    ]) == EXIT_OK
+    out = capsys.readouterr().out
+    for label in ("Slate:", "Projections", "Odds:", "Results:"):
+        assert label in out, f"{label} missing from combined run"
+    results = _run_json(_only_run_dir(paths))["results"]
+    assert set(results) == {"slate", "projections", "odds", "results"}

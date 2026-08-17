@@ -16,6 +16,10 @@ from dfs_pipeline.adapters.dk_csv import (
     REQUIRED_COLUMNS,
     DraftKingsCsvAdapter,
 )
+from dfs_pipeline.adapters.projections_csv import (
+    ProjectionRow,
+    ProjectionsCsvAdapter,
+)
 from dfs_pipeline.adapters.odds_api import (
     OddsApiAdapter,
     OddsApiError,
@@ -35,4 +39,6 @@ __all__ = [
     "OddsApiError",
     "QuotaExhausted",
     "TeamOdds",
+    "ProjectionRow",
+    "ProjectionsCsvAdapter",
 ]

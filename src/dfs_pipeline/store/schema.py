@@ -258,6 +258,10 @@ SEED_METRICS: tuple[tuple[str, str, str | None, str], ...] = (
     # --- Projections ---
     ("projection_dk_points", "num", "points", "Projected DraftKings points"),
     ("projection_ownership", "num", "percent", "Projected ownership percentage"),
+    ("projection_source_name", "text", None, "Player name exactly as the projection source spelled it"),
+    ("projection_position", "text", None, "Position as the projection source lists it"),
+    ("projection_team", "text", None, "Team as the projection source lists it"),
+    ("projection_injury_status", "text", None, "Injury designation as the projection source reports it"),
     # --- Betting market ---
     ("spread", "num", "points", "Point spread from the team's perspective; negative favours"),
     ("game_total", "num", "points", "Over/under for the game"),

@@ -13,7 +13,16 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from dfs_pipeline.adapters.base import SalarySource, SlatePlayer
-from dfs_pipeline.store import SnapshotStore, normalize_timestamp, utc_now
+import logging
+
+from dfs_pipeline.store import (
+    SnapshotStore,
+    StoreError,
+    normalize_timestamp,
+    utc_now,
+)
+
+log = logging.getLogger("dfs_pipeline.capture")
 
 __all__ = [
     "CaptureResult",
@@ -22,6 +31,8 @@ __all__ = [
     "ingest_slate",
     "ingest_odds",
     "ingest_results",
+    "ProjectionsCaptureResult",
+    "ingest_projections",
 ]
 
 
@@ -305,3 +316,113 @@ def _result_observations(results, effective: str, captured: str):
         yield {**base, "metric": "nflverse_name", "value": r.name}
         yield {**base, "metric": "nflverse_team", "value": r.team}
         yield {**base, "metric": "nflverse_position", "value": r.position}
+
+
+@dataclass(frozen=True, slots=True)
+class ProjectionsCaptureResult:
+    """What a projections capture did, for the run report."""
+
+    source: str
+    artifact_sha256: str
+    rows: int
+    with_ownership: int
+    observations: int
+    effective_at: str
+    captured_at: str
+
+
+def ingest_projections(
+    store: SnapshotStore,
+    source,
+    *,
+    effective_at: str | datetime | None = None,
+    captured_at: str | datetime | None = None,
+    original_filename: str | None = None,
+    on_duplicate: str = "error",
+) -> ProjectionsCaptureResult:
+    """Archive a projection file and record its rows.
+
+    ``effective_at`` resolution order:
+
+    1. an explicit argument (back-filling a file obtained earlier),
+    2. a timestamp the file states about itself, if the source provides one,
+    3. ``captured_at``.
+
+    Most projection exports carry no self-reported time, so (3) is the usual
+    answer and it is the honest one: we know when we read the file, not when
+    the vendor computed it. Claiming otherwise would let a backtest believe it
+    had Saturday-morning numbers on Friday night.
+    """
+    captured = normalize_timestamp(captured_at) if captured_at else utc_now()
+
+    raw = source.raw_bytes()
+    sha = store.put_artifact(
+        raw,
+        source=source.source_name,
+        kind="projections_csv",
+        original_filename=original_filename,
+        retrieved_at=captured,
+    )
+
+    rows = source.loads(raw)
+
+    if effective_at is not None:
+        effective = normalize_timestamp(effective_at)
+    else:
+        stated = next((r.stated_effective_at for r in rows if r.stated_effective_at), None)
+        try:
+            effective = normalize_timestamp(stated) if stated else captured
+        except StoreError:
+            # A date column we cannot parse is not a reason to fail a capture,
+            # but it must not silently become a made-up timestamp either.
+            log.warning(
+                "unparseable stated timestamp %r in %s; using captured_at",
+                stated, source.source_name,
+            )
+            effective = captured
+
+    observations = list(_projection_observations(rows, source.source_name, effective, captured))
+    written = store.record_many(
+        observations, artifact_sha256=sha, on_duplicate=on_duplicate
+    )
+
+    return ProjectionsCaptureResult(
+        source=source.source_name,
+        artifact_sha256=sha,
+        rows=len(rows),
+        with_ownership=sum(1 for r in rows if r.ownership is not None),
+        observations=written,
+        effective_at=effective,
+        captured_at=captured,
+    )
+
+
+def _projection_observations(rows, source: str, effective: str, captured: str):
+    """Flatten projection rows into narrow observations.
+
+    Keyed on the normalized name, NOT on a DraftKings id. The projection is
+    real data whether or not we can yet resolve who it refers to, and a
+    capture that dropped unmatched rows would lose information that cannot be
+    re-obtained.
+    """
+    for r in rows:
+        base = dict(
+            subject_type="player",
+            source=source,
+            source_subject_id=r.subject_key,
+            effective_at=effective,
+            captured_at=captured,
+        )
+        yield {**base, "metric": "projection_dk_points", "value": float(r.projection)}
+        # The source's own spelling is preserved: the normalized key is for
+        # joining, the original is what a human needs when reviewing a miss.
+        yield {**base, "metric": "projection_source_name", "value": r.name}
+
+        if r.ownership is not None:
+            yield {**base, "metric": "projection_ownership", "value": float(r.ownership)}
+        if r.position:
+            yield {**base, "metric": "projection_position", "value": r.position}
+        if r.team:
+            yield {**base, "metric": "projection_team", "value": r.team}
+        if r.injury_status:
+            yield {**base, "metric": "projection_injury_status", "value": r.injury_status}
