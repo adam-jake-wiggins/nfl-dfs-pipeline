@@ -15,7 +15,7 @@ import sys
 import pytest
 
 import dfs_pipeline
-from dfs_pipeline.cli.snapshot import EXIT_NOT_IMPLEMENTED, main
+from dfs_pipeline.cli.snapshot import EXIT_OK, EXIT_USAGE, build_parser
 
 
 def _uninstrumented_env() -> dict[str, str]:
@@ -63,31 +63,29 @@ def test_package_imports_from_an_unrelated_working_directory(tmp_path):
     assert result.stdout.strip() == dfs_pipeline.__version__
 
 
-def test_snapshot_stub_exits_nonzero():
-    """The stub must not report success it has not earned.
-
-    When capture is implemented this test gets replaced. Until then it pins
-    the honest behaviour: the command exists, and it admits it does nothing.
-    """
-    assert main([]) == EXIT_NOT_IMPLEMENTED
-    assert EXIT_NOT_IMPLEMENTED != 0
+def test_snapshot_command_is_wired_up():
+    """The console script resolves to a parser that actually builds."""
+    parser = build_parser()
+    assert parser.prog == "dfs-snapshot"
+    args = parser.parse_args(["--salaries", "x.csv"])
+    assert args.salaries == "x.csv"
 
 
 @pytest.mark.skipif(
     shutil.which("dfs-snapshot") is None,
     reason="console script not on PATH (package not installed in this env)",
 )
-def test_console_script_is_on_path_and_exits_nonzero():
+def test_console_script_is_on_path():
     """End-to-end check that pyproject's entry point actually works."""
     result = subprocess.run(
-        ["dfs-snapshot"],
+        ["dfs-snapshot", "--version"],
         capture_output=True,
         text=True,
         timeout=30,
         env=_uninstrumented_env(),
     )
-    assert result.returncode == EXIT_NOT_IMPLEMENTED
-    assert "not implemented" in result.stderr.lower()
+    assert result.returncode == EXIT_OK
+    assert "0.1.0" in result.stdout
 
 
 def test_running_as_a_module_also_works():
@@ -99,4 +97,5 @@ def test_running_as_a_module_also_works():
         timeout=30,
         env=_uninstrumented_env(),
     )
-    assert result.returncode == EXIT_NOT_IMPLEMENTED
+    assert result.returncode == EXIT_USAGE
+    assert "nothing to capture" in result.stderr

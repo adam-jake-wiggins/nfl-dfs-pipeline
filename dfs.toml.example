@@ -1,0 +1,26 @@
+# Standing defaults for dfs-snapshot.
+#
+# Copy to dfs.toml (in the directory you run from) to avoid re-typing paths
+# every week. Command-line flags always win over anything set here:
+#
+#     built-in defaults  <  dfs.toml  <  command-line flags
+#
+# Run `dfs-snapshot --show-config` to see the resolved values and where each
+# one came from.
+
+[store]
+# Where the bitemporal snapshot store lives. Raw artifacts are written to a
+# `raw/` directory beside it, so the whole store is one copyable folder.
+path = "data/snapshots.sqlite"
+
+[runs]
+# Root for per-run audit directories. Each run writes run.json (config,
+# input hashes, timestamps, outcome) and run.log here -- including when it
+# fails.
+directory = "runs"
+
+[capture]
+# What to do when observations with identical timestamps already exist.
+#   error  -- refuse (default). Re-capturing the same instant is usually a mistake.
+#   ignore -- skip duplicates. Useful when re-running a partially failed capture.
+on_duplicate = "error"

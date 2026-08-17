@@ -422,6 +422,84 @@ and is not committed.
 
 110 tests, **100% line and branch coverage**.
 
+### `dfs-snapshot` wired to the CSV path — the pipeline is now runnable
+
+Three working components became one command:
+
+```
+dfs-snapshot --salaries DKSalaries.csv
+```
+
+Against the real 716-row export: 5,117 observations captured, artifact
+archived and hashed, run directory written. If the season started tomorrow,
+a slate could be captured today.
+
+**Configuration precedence is one-directional and recorded.** Built-in
+defaults < `dfs.toml` < command-line flags. A weekly command should not
+require re-typing six paths, but a config file must never silently win over
+something the operator typed. Every resolved value keeps its origin, so
+`--show-config` answers "why is it using *that* store?" without reading
+source.
+
+**A malformed config is a hard failure, not a fallback.** Silently ignoring a
+config the operator wrote — and running against a different store than they
+intended — is the same class of quiet wrongness as a silent name-match
+failure. Unknown sections and unknown keys are rejected too, so a typo'd
+`[stoer]` is caught rather than ignored.
+
+**Console quiet, log verbose.** Default console output is warnings only; the
+per-run `run.log` always records everything at DEBUG. Otherwise diagnosing a
+Week 7 failure depends on having thought to pass `-v` in Week 7.
+
+**Exit codes distinguish kinds of failure**, because a caller scripting this
+needs to tell "fix your CSV" from "fix your machine":
+
+| Code | Meaning |
+|---|---|
+| 0 | capture succeeded |
+| 1 | runtime failure (store unavailable, permissions) |
+| 2 | usage error |
+| 3 | input data rejected — schema or validation failure |
+
+**The run directory is written even when the run fails**, with the error
+recorded. A run that vanishes when it breaks cannot be debugged on a Sunday
+morning. `run.json` carries the resolved config with origins, the SHA-256 and
+byte size of every input, package/Python/platform versions, timestamps, and
+the outcome.
+
+**Randomness is recorded as `"none"` rather than omitted.** There is no seed
+because nothing in the capture path is nondeterministic. Stating that
+explicitly lets a reader *confirm* determinism instead of assuming it. When
+the optimizer lands — solver tie-breaking is the first real source of
+nondeterminism — this becomes a recorded seed. Adding a `--seed` flag now
+would be a placebo.
+
+### Two bugs found by writing the tests
+
+**1. Run directories collided and silently destroyed history.** Run ids are
+timestamped to the second, and four rapid runs produced *one* directory —
+each overwriting the last one's metadata. Re-running a failed capture
+immediately is completely ordinary, so this was a real collision, not a
+theoretical one, and it destroyed exactly the audit trail the class exists to
+provide. Fixed with `mkdir(exist_ok=False)` and a numeric suffix, which is
+race-free in a way that checking-then-creating is not. Regression test pins
+it.
+
+**2. `sqlite3.OperationalError` escaped as a raw traceback.** The CLI caught
+`StoreError` and `OSError`, but sqlite3's exceptions descend from neither, so
+an unopenable database file produced a stack trace instead of a message. The
+acceptance criterion is "never a traceback, never silence" — and that applies
+to the environment failing just as much as to bad input. Caught explicitly
+now, with the reason commented at the except clause.
+
+One test of mine was also simply wrong: it created a *directory* named
+`dfs.toml` expecting a read error, but `is_file()` correctly skips that.
+Rewritten to use an unreadable file, which is the real case.
+
+146 tests, 100% statement coverage, 99% branch. Two partial branches remain
+(an error-message conditional and a loop-exit path); left uncovered rather
+than padded with artificial tests.
+
 ### Open items
 
 - Verify DK Classic scoring constants against DraftKings' published rules

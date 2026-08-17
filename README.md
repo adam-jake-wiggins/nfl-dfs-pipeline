@@ -103,16 +103,50 @@ fixed.
 
 ## Installation
 
-**UNVERIFIED — packaging not yet built.** The prototypes currently require
-Python 3.10+ and PuLP, and are run directly:
+Requires Python 3.11+. Using [uv](https://docs.astral.sh/uv/):
 
 ```bash
-python dk_optimizer.py DKSalaries.csv --projections projections.csv \
-    --lineups 20 --stack 2 --bringback 1
+git clone https://github.com/adam-jake-wiggins/nfl-dfs-pipeline.git
+cd nfl-dfs-pipeline
+uv sync --extra dev
 ```
 
-A `pyproject.toml` with pinned dependencies and console entry points is
-planned.
+## Usage
+
+Capture a slate into the snapshot store:
+
+```bash
+uv run dfs-snapshot --salaries DKSalaries.csv
+```
+
+Validate a file without writing anything:
+
+```bash
+uv run dfs-snapshot --salaries DKSalaries.csv --dry-run
+```
+
+Standing defaults live in `dfs.toml` (see `dfs.toml.example`); command-line
+flags always win. `dfs-snapshot --show-config` prints the resolved values and
+where each one came from.
+
+Every run writes a self-contained directory under `runs/` holding the resolved
+config, the SHA-256 of each input, timestamps, and the outcome — **including
+when the run fails**, because a run that leaves no trace when it breaks cannot
+be debugged afterwards.
+
+Exit codes: `0` success, `1` runtime failure, `2` usage error, `3` input data
+rejected.
+
+## Tests
+
+```bash
+uv run pytest --cov=dfs_pipeline --cov-report=term-missing
+```
+
+**VERIFIED (2026-08-17):** 146 tests, 100% statement coverage. The suite
+includes property-based tests over generated inputs, malformed-input fixtures
+asserting each failure names its file/row/column, and a fixture derived from a
+real DraftKings export.
 
 ## License
 
