@@ -171,6 +171,61 @@ Phase 1:
 | Publish `RESEARCH_ROADMAP.md`; keep the source handoff and case-study template local | The handoff is an *input* to the work, written in first person to an assistant. Its substantive content — domain rules, acceptance criteria, non-goals — is restated in README/TESTING/DEVLOG as project documentation, which is where a reviewer expects it. Nothing substantive is withheld; what stays local is pedagogy, not project. |
 | GitHub noreply commit email | A public repository records the author email permanently, and bots scrape it. |
 
+### Package skeleton (same session)
+
+Stood up `pyproject.toml`, a `src/` layout, and pytest. 25 tests passing
+against Python 3.12.14.
+
+**Why `src/` rather than a top-level package.** With a top-level layout,
+Python resolves imports from the current working directory, so a test suite
+can pass against code that was never actually installed — packaging breaks
+silently and only surfaces when someone else clones the repo. A `src/` layout
+makes that impossible: tests can only reach the package through the
+installed environment.
+
+**Dependency pinning split.** `pyproject.toml` declares compatible ranges;
+`uv.lock` records exact resolved versions and is committed. The ranges say
+what the code tolerates, the lockfile says what was actually tested.
+
+**`dfs-snapshot` exists and exits non-zero.** The console script is wired up
+and on PATH, but no capture logic is written, so it prints its status to
+stderr and returns exit code 2. A stub that printed something friendly and
+returned 0 would be reporting success it had not earned — the exact failure
+class this project treats as worse than crashing. A test pins that behaviour
+so it cannot quietly become a no-op success.
+
+**First domain module: `dfs_pipeline.contest`.** Contest rules as data in one
+auditable place. Includes `legal_roster_shapes()`, which *derives* the three
+legal position-count combinations from the bounds rather than hardcoding
+them, so the enumeration cannot drift out of sync with the constraints it
+expresses. A Hypothesis property test cross-checks the arithmetic predicate
+against the brute-force enumeration over thousands of generated inputs — two
+independent implementations of the same rule, required never to disagree.
+
+Scoring constants are deliberately **not** in this module yet. They require
+verification against DraftKings' published rules plus a fixture pairing real
+stat lines with published point totals. Encoding them now would look like
+knowledge we do not have.
+
+### Two test failures on first run, both instructive
+
+1. `TypeError: unhashable type: 'dict'` — a genuinely bad line of test code
+   (`{dict(s) for s in ...}` builds a set of dicts). Fixed by writing what
+   was meant: `len(legal_roster_shapes()) == 3`.
+
+2. A test asserted the package would import from site-packages rather than
+   the source tree. It failed, and **the test was wrong, not the code**.
+   `uv sync` installs the project in editable mode, which correctly points
+   the environment back at `src/`. The property actually worth testing is
+   that the package imports from an *unrelated working directory* — that can
+   only succeed if the environment genuinely knows about the package.
+   Rewritten accordingly.
+
+Recording the second one because the failure mode is subtle: the test was
+green-adjacent nonsense that would have "passed" under a worse packaging
+setup and failed under a correct one. A test that asserts the wrong invariant
+is worse than no test, because it manufactures confidence.
+
 ### Open items
 
 - Verify DK Classic scoring constants against DraftKings' published rules
