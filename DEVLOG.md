@@ -226,6 +226,113 @@ green-adjacent nonsense that would have "passed" under a worse packaging
 setup and failed under a correct one. A test that asserts the wrong invariant
 is worse than no test, because it manufactures confidence.
 
+### Storage decision: SQLite, with raw artifacts kept as files beside it
+
+**Rejected the usual framing.** Parquet is normally chosen over SQLite for
+scale. Estimated volume is ~6,600 rows/week — under 15 MB per season, roughly
+600k rows across five seasons. Columnar compression and scan throughput solve
+problems three orders of magnitude larger than ours, so performance cannot
+decide this. Any argument resting on it would be cargo-cult.
+
+What decided it, in weight order:
+
+1. **Integrity enforced by the engine, not by convention.** Append-only
+   history is the foundation of every point-in-time claim this project makes.
+   Parquet has no constraints: nothing stops a re-run writing a duplicate
+   observation. In SQLite the UNIQUE constraint, the CHECK constraints and
+   the append-only triggers hold even against someone poking at the database
+   from a SQLite browser in Week 12.
+2. **The as-of query is inherently relational** — partition by subject,
+   order by two timestamps, take the top row, join across sources. Twelve
+   lines of SQL that can be read and verified by eye. This is the one query
+   the entire backtest layer depends on being correct.
+3. **Maintainability.** The stated goal is maintaining this without
+   assistance by season's end. SQLite means opening the file in any browser
+   and writing SQL; Parquet means writing Python.
+4. **The crosswalk is mutable.** Persistent identity resolutions with
+   `first_seen` / `last_seen` / `review_status` are point lookups and updates
+   — a database table, not an immutable file dump.
+
+**DuckDB considered and deferred.** Technically the strongest contender: SQL
+semantics plus native Parquet. Rejected for now because it adds a dependency
+to solve a scale problem we do not have, and its constraint support is less
+complete than SQLite's. If the store ever outgrows SQLite, DuckDB reads the
+same data — a reason to defer the decision rather than make it now.
+
+**Honest cost of the choice: schema migrations.** A source adding a column
+means an `ALTER TABLE` where Parquet would just absorb it. Mitigated by the
+narrow-table design below, which turns most upstream changes into new rows
+rather than new columns.
+
+### Raw artifacts are the part that matters more than the format
+
+Raw bytes are written to `raw/<first-two-hex>/<sha256>.bin` and never
+modified; the digest is recorded against every observation parsed from them.
+
+The reasoning: **if a parser has a bug, normalized-only storage bakes that bug
+in permanently.** Discover in December that September's odds timestamps were
+mis-parsed, and with raw artifacts you re-parse and recover. Without them,
+September is corrupt forever — and September cannot be re-downloaded at any
+price. It also supplies the literal proof required: "this is exactly the file
+we used on September 13," verifiable by hash. `artifact_bytes()` re-verifies
+the digest on every read, so silent bit-rot in the raw zone cannot pass.
+
+### Schema notes
+
+**Narrow observations, controlled vocabulary.** Observations are stored as
+`(subject, metric, value)` rather than one column per statistic, so a new
+statistic is a new row rather than a migration, and the as-of query is written
+and tested once instead of once per table. The usual cost of that flexibility
+is losing a controlled vocabulary — typo `projeciton` and you have silently
+created a new metric. The `metric` table closes that: metric names are foreign
+keys, so an unregistered name is rejected, while adding a legitimate metric
+stays a data insert.
+
+**Capture never blocks on identity resolution.** Observations key on
+`(source, source_subject_id)` — whatever identifier the source itself used.
+Resolution onto nflverse IDs happens later via `crosswalk`. Dropping an
+observation because a name did not match would be the worst possible trade,
+since the data cannot be re-obtained.
+
+**Clock-skew tolerance.** A CHECK constraint enforces
+`effective_at <= captured_at`, which catches the classic bug of passing the
+two timestamps in the wrong order. It allows 60 seconds of slack, because
+source clocks are not synchronised with ours and a source stamping an event
+a few seconds ahead of our wall clock is skew, not a data error. Without the
+tolerance this would have failed spuriously in production.
+
+**Foreign keys had to be switched on explicitly.** SQLite ships with
+`PRAGMA foreign_keys` defaulting to OFF. Every `REFERENCES` clause in a schema
+is decorative until a connection turns it on — a silent-integrity trap
+directly counter to this project's premise. There is now a test asserting the
+pragma is enabled, because the failure mode is invisible.
+
+### Three failures worth recording
+
+1. **`executescript()` issues an implicit COMMIT before running.** Wrapping
+   the DDL in an explicit transaction produced `cannot commit - no
+   transaction is active` and took out 25 tests at once. Documented Python
+   behaviour, but surprising. DDL now runs outside the transaction; only
+   seed data is transactional.
+
+2. **A weak assertion that proved nothing.** The central Sunday-capture test
+   originally ended with `assert 21.5 in sunday or sunday == {17.1}` — an
+   assertion accepting two contradictory outcomes. It passed, and it tested
+   nothing. Replaced with exact assertions on value, effective_at and total
+   observation count. This is the second time in one session a test asserted
+   the wrong invariant; both are recorded because a test that manufactures
+   confidence is worse than no test.
+
+3. **Coverage refused to combine subprocess data.** The packaging tests spawn
+   children, one with `cwd=tmp_path`, where coverage cannot find
+   `pyproject.toml`, silently falls back to statement-only mode, and then
+   fails to merge with the parent's branch data. Those children are testing
+   packaging, not coverage, so they now run with the instrumentation
+   environment stripped.
+
+Store implementation: 61 tests, **100% line and branch coverage** on
+`dfs_pipeline`.
+
 ### Open items
 
 - Verify DK Classic scoring constants against DraftKings' published rules

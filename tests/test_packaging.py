@@ -7,6 +7,7 @@ importing loose files from the working directory.
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import sys
@@ -15,6 +16,22 @@ import pytest
 
 import dfs_pipeline
 from dfs_pipeline.cli.snapshot import EXIT_NOT_IMPLEMENTED, main
+
+
+def _uninstrumented_env() -> dict[str, str]:
+    """Environment with pytest-cov's subprocess hooks removed.
+
+    These tests spawn children to prove the package is installed and the
+    console script works -- packaging questions, not coverage ones. Left
+    instrumented, a child launched with a different working directory cannot
+    find pyproject.toml, silently falls back to statement-only coverage, and
+    then fails to merge with the parent's branch data.
+    """
+    return {
+        k: v
+        for k, v in os.environ.items()
+        if not k.startswith("COV_CORE_") and k != "COVERAGE_PROCESS_START"
+    }
 
 
 def test_package_imports_and_reports_a_version():
@@ -40,6 +57,7 @@ def test_package_imports_from_an_unrelated_working_directory(tmp_path):
         text=True,
         cwd=tmp_path,
         timeout=30,
+        env=_uninstrumented_env(),
     )
     assert result.returncode == 0, result.stderr
     assert result.stdout.strip() == dfs_pipeline.__version__
@@ -62,7 +80,11 @@ def test_snapshot_stub_exits_nonzero():
 def test_console_script_is_on_path_and_exits_nonzero():
     """End-to-end check that pyproject's entry point actually works."""
     result = subprocess.run(
-        ["dfs-snapshot"], capture_output=True, text=True, timeout=30
+        ["dfs-snapshot"],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        env=_uninstrumented_env(),
     )
     assert result.returncode == EXIT_NOT_IMPLEMENTED
     assert "not implemented" in result.stderr.lower()
@@ -75,5 +97,6 @@ def test_running_as_a_module_also_works():
         capture_output=True,
         text=True,
         timeout=30,
+        env=_uninstrumented_env(),
     )
     assert result.returncode == EXIT_NOT_IMPLEMENTED
