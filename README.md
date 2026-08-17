@@ -143,7 +143,7 @@ rejected.
 uv run pytest --cov=dfs_pipeline --cov-report=term-missing
 ```
 
-**VERIFIED (2026-08-17):** 146 tests, 100% statement coverage. The suite
+**VERIFIED (2026-08-17):** 217 tests, 100% statement coverage. The suite
 includes property-based tests over generated inputs, malformed-input fixtures
 asserting each failure names its file/row/column, and a fixture derived from a
 real DraftKings export.

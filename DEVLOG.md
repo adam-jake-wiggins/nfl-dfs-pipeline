@@ -500,10 +500,82 @@ Rewritten to use an unreadable file, which is the real case.
 (an error-message conditional and a loop-exit path); left uncovered rather
 than padded with artificial tests.
 
-### Open items
+### DK Classic scoring encoded — the last BLOCKED item, cleared
 
-- Verify DK Classic scoring constants against DraftKings' published rules
-  (**BLOCKED** — needs the current published rules page).
+DraftKings' published NFL Classic rules were supplied, so the scoring
+constants moved from BLOCKED to **VERIFIED against the published rules
+(2026-08-17)**. All constants live in one module, `dfs_pipeline.scoring`, and
+the test suite asserts each component independently before checking any
+composite. That ordering matters: a composite total can be correct by
+cancellation — two errors of equal magnitude and opposite sign produce a
+passing test and a broken scorer.
+
+**Verification is deliberately split into two claims**, because collapsing
+them would overstate what we know:
+
+- **VERIFIED:** the implementation matches DraftKings' published rules,
+  component by component.
+- **UNVERIFIED:** that it reproduces a *DraftKings-published player total*
+  for a real game. That needs a real contest box score to compare against.
+  Matching the stated rules and matching DK's own output are different
+  claims, and the acceptance criterion asks for the second.
+
+### The continuous-yardage trap
+
+DraftKings words the yardage rules as "+1 Pt per 25 Passing Yards
+(+0.04 Pts/Yard)". The parenthetical governs — scoring is **continuous, not
+stepped**:
+
+| Passing yards | Correct | Integer division | Error |
+|---|---|---|---|
+| 287 | 11.48 | 11.00 | **+0.48** |
+| 299 | 11.96 | 11.00 | **+0.96** |
+| 349 | 16.96 | 16.00 | **+0.96** |
+
+An implementation using `yards // 25` under-scores nearly every player on
+every slate by up to a point — small, plausible, uniformly wrong, and
+invisible without a component-level test. Errors of that size are decisive in
+a contest where lineups separate by fractions. The same applies to the 0.1/yard
+rushing and receiving rules, and negative yardage scores negatively (a
+quarterback with -3 rushing yards loses 0.3).
+
+### Other details the published rules settled
+
+- **Bonus thresholds are inclusive.** "300+" and "100+" mean exactly 300 and
+  exactly 100 qualify. Tested at both edges.
+- **Rushing and receiving 100-yard bonuses stack** for a player who crosses
+  both.
+- **Points allowed is DST-attributable only** — points the team's own offense
+  surrenders (a pick-six thrown by your quarterback) are not charged to the
+  defense. The field is documented as requiring the attributable figure, not
+  the opponent's final score. This is a real modelling hazard when results
+  ingestion lands, because the naive source for "points allowed" is the box
+  score's final total, which is wrong.
+- **Half-sacks score 0.5**, so the sacks field is a float.
+- **Points-allowed tiers tested at every boundary** (0/1/6/7/13/14/20/21/27/
+  28/34/35), where off-by-one errors live. A property test also asserts the
+  tier function is monotone — surrendering more points can never help.
+- Negative points-allowed raises rather than scoring as the shutout tier,
+  which would quietly reward a data bug.
+
+### A test failure worth recording
+
+Two scoring tests failed on first run, and **the code was right — my test
+expectations were wrong.** I asserted 137 rushing yards scores 13.7, having
+forgotten the 100-yard bonus I had just implemented; the correct answer is
+16.7. Fixed by moving the continuity cases below 100 so they isolate what
+they claim to test, and adding a separate case for yardage-plus-bonus.
+
+This is the third time in the project that a test asserted the wrong
+invariant. The pattern is consistent enough to name: writing the test from
+the same mental model that wrote the code reproduces the model's blind spots.
+The defence that keeps working is deriving expected values from the *source
+document* arithmetic rather than from the implementation — which is why every
+composite test now spells out its terms in the docstring.
+
+217 tests, 100% statement coverage.
+
+### Open items
 - Verify the bulk-upload CSV format against a real DK entries template
   (**BLOCKED** — needs slates to open).
 - Benchmark simultaneous vs sequential multi-lineup solving at realistic scale
