@@ -59,7 +59,7 @@ def _run_json(path: Path) -> dict:
 def test_capture_succeeds(paths, capsys):
     assert _capture(paths, "--captured-at", "2026-09-11T18:00:00Z") == EXIT_OK
     out = capsys.readouterr().out
-    assert "Captured 13 entries" in out
+    assert "captured 13 entries" in out
     assert "observations" in out
 
 
@@ -157,7 +157,7 @@ def test_malformed_input_exits_three_with_a_specific_message(paths, capsys):
     assert _capture(paths, salaries=ONE_GAME) == EXIT_DATA
     err = capsys.readouterr().err
     assert "only one game present" in err
-    assert "nothing was written" in err
+    assert "nothing was recorded" in err
 
 
 def test_missing_file_is_reported_not_traced(paths, capsys, tmp_path):
@@ -217,7 +217,7 @@ def test_dry_run_reports_flagged_players(paths, capsys):
 
 def test_effective_at_defaults_to_captured_at(paths):
     _capture(paths, "--captured-at", "2026-09-11T18:00:00Z")
-    results = _run_json(_only_run_dir(paths))["results"]
+    results = _run_json(_only_run_dir(paths))["results"]["slate"]
     assert results["effective_at"] == results["captured_at"] == "2026-09-11T18:00:00Z"
 
 
@@ -227,7 +227,7 @@ def test_effective_at_can_be_set_for_backfill(paths):
         "--captured-at", "2026-09-13T09:00:00Z",
         "--effective-at", "2026-09-10T12:00:00Z",
     )
-    results = _run_json(_only_run_dir(paths))["results"]
+    results = _run_json(_only_run_dir(paths))["results"]["slate"]
     assert results["effective_at"] == "2026-09-10T12:00:00Z"
     assert results["captured_at"] == "2026-09-13T09:00:00Z"
 
@@ -376,3 +376,147 @@ def test_run_directory_propagates_exceptions(tmp_path):
     )
     assert record["outcome"] == "failed"
     assert "boom" in record["error"]
+
+
+# ---------------------------------------------------------------------------
+# The odds path through the CLI
+# ---------------------------------------------------------------------------
+
+ODDS_SAMPLE = FIXTURES / "odds_nfl_sample.json"
+
+
+class StubOddsAdapter:
+    """Replaces OddsApiAdapter in the CLI, with no network access."""
+
+    source_name = "ODDS_API"
+    regions = ("us",)
+    markets = ("spreads", "totals")
+    credit_cost = 2
+
+    def __init__(self, *_args, **kwargs):
+        self.kwargs = kwargs
+        self.last_quota_remaining = 496
+        StubOddsAdapter.last_instance = self
+
+    def check_quota(self) -> int:
+        return 498
+
+    def raw_bytes(self) -> bytes:
+        return ODDS_SAMPLE.read_bytes()
+
+    def loads(self, raw: bytes):
+        from dfs_pipeline.adapters import OddsApiAdapter
+
+        return OddsApiAdapter("k" * 32).loads(raw)
+
+
+@pytest.fixture()
+def stub_odds(monkeypatch):
+    monkeypatch.setattr("dfs_pipeline.cli.snapshot.OddsApiAdapter", StubOddsAdapter)
+    monkeypatch.setattr(
+        "dfs_pipeline.cli.snapshot.read_odds_api_key", lambda *a, **k: "k" * 32
+    )
+    return StubOddsAdapter
+
+
+def test_quota_report_costs_nothing_and_exits_zero(stub_odds, capsys):
+    assert main(["--quota"]) == EXIT_OK
+    out = capsys.readouterr().out
+    assert "498" in out
+    assert "Cost of one odds capture" in out
+    assert "2" in out
+
+
+def test_quota_report_explains_how_many_captures_remain(stub_odds, capsys):
+    """The operator needs to plan a season, not read a raw number."""
+    main(["--quota", "--min-quota", "100"])
+    assert "Captures affordable" in capsys.readouterr().out
+
+
+def test_quota_report_without_a_key_fails_clearly(monkeypatch, capsys):
+    from dfs_pipeline.secrets import MissingSecret
+
+    def missing(*_a, **_k):
+        raise MissingSecret("ODDS_API_KEY", [".env"])
+
+    monkeypatch.setattr("dfs_pipeline.cli.snapshot.read_odds_api_key", missing)
+    assert main(["--quota"]) == EXIT_ERROR
+    assert "ODDS_API_KEY" in capsys.readouterr().err
+
+
+def test_odds_capture_writes_observations(paths, stub_odds, capsys):
+    assert main([
+        "--odds", "--store", paths["store"], "--runs", paths["runs"],
+        "--captured-at", "2026-08-17T17:00:00Z",
+    ]) == EXIT_OK
+    out = capsys.readouterr().out
+    assert "Odds: captured 3 games x 9 bookmakers" in out
+    with SnapshotStore.open(paths["store"], create=False) as store:
+        assert len(store.as_of("2026-08-17T18:00:00Z", metric="spread")) == 52
+
+
+def test_odds_run_records_quota_and_window(paths, stub_odds):
+    main([
+        "--odds", "--store", paths["store"], "--runs", paths["runs"],
+        "--odds-days", "14", "--captured-at", "2026-08-17T17:00:00Z",
+    ])
+    odds = _run_json(_only_run_dir(paths))["results"]["odds"]
+    assert odds["games"] == 3
+    assert odds["bookmakers"] == 9
+    assert odds["quota_remaining"] == 496
+    assert odds["window_days"] == 14
+
+
+def test_both_sources_captured_in_one_run(paths, stub_odds, capsys):
+    """A weekly bundle should be one invocation, not several."""
+    assert main([
+        "--salaries", GOOD, "--odds",
+        "--store", paths["store"], "--runs", paths["runs"],
+        "--captured-at", "2026-08-17T17:00:00Z",
+    ]) == EXIT_OK
+    out = capsys.readouterr().out
+    assert "Slate:" in out and "Odds:" in out
+
+    results = _run_json(_only_run_dir(paths))["results"]
+    assert "slate" in results and "odds" in results
+    assert len(_run_json(_only_run_dir(paths))["inputs"]) == 2
+
+
+def test_quota_exhaustion_exits_one_not_three(paths, monkeypatch, capsys):
+    """Running out of credits is an environment problem, not bad data."""
+    from dfs_pipeline.adapters import QuotaExhausted
+
+    class Broke(StubOddsAdapter):
+        def raw_bytes(self):
+            raise QuotaExhausted("refusing to spend 2 credits: below the floor")
+
+    monkeypatch.setattr("dfs_pipeline.cli.snapshot.OddsApiAdapter", Broke)
+    monkeypatch.setattr(
+        "dfs_pipeline.cli.snapshot.read_odds_api_key", lambda *a, **k: "k" * 32
+    )
+    assert main(["--odds", "--store", paths["store"], "--runs", paths["runs"]]) == EXIT_ERROR
+    assert "below the floor" in capsys.readouterr().err
+
+
+def test_missing_key_during_capture_exits_one(paths, monkeypatch, capsys):
+    from dfs_pipeline.secrets import MissingSecret
+
+    def missing(*_a, **_k):
+        raise MissingSecret("ODDS_API_KEY", [".env"])
+
+    monkeypatch.setattr("dfs_pipeline.cli.snapshot.read_odds_api_key", missing)
+    assert main(["--odds", "--store", paths["store"], "--runs", paths["runs"]]) == EXIT_ERROR
+    assert "ODDS_API_KEY" in capsys.readouterr().err
+
+
+def test_dry_run_refuses_odds(paths, capsys):
+    """A dry run must not spend credits to tell you nothing would be written."""
+    assert main(["--odds", "--dry-run", "--store", paths["store"],
+                 "--runs", paths["runs"]]) == 2
+    assert "would spend credits" in capsys.readouterr().err
+
+
+def test_min_quota_flag_reaches_the_adapter(paths, stub_odds):
+    main(["--odds", "--store", paths["store"], "--runs", paths["runs"],
+          "--min-quota", "300", "--captured-at", "2026-08-17T17:00:00Z"])
+    assert StubOddsAdapter.last_instance.kwargs["min_quota"] == 300

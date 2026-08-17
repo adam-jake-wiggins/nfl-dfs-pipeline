@@ -16,6 +16,12 @@ from dfs_pipeline.adapters.dk_csv import (
     REQUIRED_COLUMNS,
     DraftKingsCsvAdapter,
 )
+from dfs_pipeline.adapters.odds_api import (
+    OddsApiAdapter,
+    OddsApiError,
+    QuotaExhausted,
+    TeamOdds,
+)
 
 __all__ = [
     "SlatePlayer",
@@ -25,4 +31,8 @@ __all__ = [
     "parse_game_info",
     "DraftKingsCsvAdapter",
     "REQUIRED_COLUMNS",
+    "OddsApiAdapter",
+    "OddsApiError",
+    "QuotaExhausted",
+    "TeamOdds",
 ]

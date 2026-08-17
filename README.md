@@ -70,10 +70,16 @@ lineups. See [DEVLOG.md](DEVLOG.md) for the proof.
 
 ### Adapter isolation for the unstable dependency
 
-**UNVERIFIED — not yet built.** The salary data source offers no stability
-guarantee, so it will live behind a single-class adapter with a manual CSV
-import as a proven-equivalent fallback. Downstream code will not know which
-path produced the data. When the endpoint changes, one module changes.
+**VERIFIED (2026-08-17)** for the CSV and odds paths. Each upstream source
+lives behind one adapter class producing normalized records, so downstream code
+never learns which source produced the data. When an endpoint changes, one
+module changes.
+
+Three sources spell teams three ways — `SEA`, `Seattle Seahawks`, `Seahawks` —
+so `dfs_pipeline.teams` resolves all of them exhaustively. With exactly 32
+teams there is no fuzzy matching at all: an unknown team raises rather than
+guesses, because a silently unresolved team would drop half a game's odds while
+the pipeline looked healthy.
 
 No code in this repository authenticates as a user, submits entries, or
 performs any account mutation. That is a hard boundary, not a current
@@ -81,8 +87,8 @@ limitation.
 
 ### Bitemporal timestamps as a schema requirement
 
-**UNVERIFIED — not yet built.** Every captured observation will carry two
-timestamps, neither ever overwritten:
+**VERIFIED (2026-08-17).** Every captured observation carries two timestamps,
+neither ever overwritten:
 
 - `effective_at` — when the source says the information was current
 - `captured_at` — when this system actually obtained it
@@ -113,10 +119,16 @@ uv sync --extra dev
 
 ## Usage
 
-Capture a slate into the snapshot store:
+Capture a slate and a betting snapshot in one command:
 
 ```bash
-uv run dfs-snapshot --salaries DKSalaries.csv
+uv run dfs-snapshot --salaries DKSalaries.csv --odds
+```
+
+Check remaining Odds API credits (costs nothing):
+
+```bash
+uv run dfs-snapshot --quota
 ```
 
 Validate a file without writing anything:
@@ -134,6 +146,12 @@ config, the SHA-256 of each input, timestamps, and the outcome — **including
 when the run fails**, because a run that leaves no trace when it breaks cannot
 be debugged afterwards.
 
+Odds capture needs `ODDS_API_KEY` in the environment or `.env` (see
+`.env.example`). The free tier bills **one credit per region per market**, so a
+spreads-and-totals capture costs 2 — the adapter logs remaining quota on every
+call and refuses to run below `--min-quota` (default 25), so a scheduled job
+cannot exhaust the monthly budget before a live slate.
+
 Exit codes: `0` success, `1` runtime failure, `2` usage error, `3` input data
 rejected.
 
@@ -143,10 +161,11 @@ rejected.
 uv run pytest --cov=dfs_pipeline --cov-report=term-missing
 ```
 
-**VERIFIED (2026-08-17):** 217 tests, 100% statement coverage. The suite
+**VERIFIED (2026-08-17):** 313 tests, 100% statement coverage. The suite
 includes property-based tests over generated inputs, malformed-input fixtures
-asserting each failure names its file/row/column, and a fixture derived from a
-real DraftKings export.
+asserting each failure names its file/row/column, and fixtures recorded from
+real DraftKings and Odds API responses. No test touches the network — a suite
+that spends real API quota is a suite people stop running.
 
 ## License
 

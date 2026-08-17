@@ -575,6 +575,103 @@ composite test now spells out its terms in the docstring.
 
 217 tests, 100% statement coverage.
 
+### Odds ingest — and the identity layer it forced
+
+Live capture works: `dfs-snapshot --salaries ... --odds` records a slate and a
+betting snapshot in one invocation. Against real data: 716 slate entries plus
+16 games x 9 bookmakers, **12 of 12 slate games joined to odds** by game key.
+
+**Quota is a design constraint, not a footnote.** The free tier is 500
+requests/month and **cost is one credit per region per market, not per call** —
+`us` with `spreads,totals` costs 2. That multiplier is how a month disappears
+in an afternoon. So: the cost is computed and logged before the call, remaining
+credits are read from response headers and logged every time, and the adapter
+**refuses to run below a floor** (`--min-quota`, default 25) so a scheduled job
+cannot exhaust the budget and leave a live slate uncaptured. Quota can be
+checked for free — `/v4/sports` returns the same headers at zero cost — which
+is what `--quota` uses.
+
+**The API returns the whole season without a window.** The first exploratory
+call came back with **272 events**, nearly all irrelevant to any one slate.
+`commenceTimeFrom`/`commenceTimeTo` now bound it (`--odds-days`, default 8).
+Worth noting the window does not reduce cost — cost is per region per market
+regardless — it reduces noise.
+
+**Bitemporality finally earns its keep.** Unlike the DraftKings CSV, which
+carries no timestamp of its own, every odds market reports its own
+`last_update`. That is a genuine `effective_at` distinct from `captured_at`:
+a line that moved at 16:40 and was read by us at 17:05. This is the case the
+store was built for, and it arrives per-row rather than per-capture — one book
+may have moved minutes ago and another hours ago.
+
+**Every bookmaker is kept, not reduced to a consensus.** Each becomes its own
+source (`ODDS_API:draftkings`). Books disagree, and that disagreement is
+signal which cannot be recovered from a consensus computed at capture time and
+stored alone. Consensus is a modelling decision, and modelling decisions belong
+downstream of capture.
+
+**Derived values are computed, not stored... except one.** `implied_team_total`
+is `(total / 2) - (spread / 2)`. It is a property on the record rather than a
+stored field, so it cannot drift from its inputs — but it *is* also written as
+an observation, because a backtest asking "what was the implied total at
+Saturday 23:00" should not have to re-derive it from two separately-resolved
+rows. The property is the definition; the stored value is a convenience that
+the property generates.
+
+### The team identity layer
+
+The Odds API says `Seattle Seahawks`; DraftKings says `SEA` and names defenses
+`Seahawks`. `dfs_pipeline.teams` resolves all three, and this also satisfies
+the handoff's 32-team DST alias requirement — a defense is a team-level
+entity, not a player with an odd name, and resolving `Chargers` to `LAC` must
+never run through logic designed for human names.
+
+**No fuzzy matching, deliberately.** There are exactly 32 teams and they change
+about once a decade, so the mapping can be exhaustive. With 32 possible
+answers a fuzzy match that fires is a bug, not a rescue. Unknown teams raise;
+a silently unresolved team would drop half a game's odds while the pipeline
+looked healthy.
+
+Historical codes (`OAK`, `SD`, `STL`, `WFT`) resolve to current franchises, so
+older nflverse seasons need no special-casing at the call site. Alias
+collisions raise at import — an alias quietly shadowing another team's key
+would misroute an entire franchise's data with no visible symptom.
+
+Validated against **both** live vocabularies: every abbreviation and every DST
+nickname from the real DraftKings export, and all 32 full names from the real
+Odds API response.
+
+### What the recorded fixture caught that an invented one would not
+
+Four tests failed asserting 54 spread rows across 3 games x 2 teams x 9 books.
+The parser was right: **`mybookieag` posted a total for SF@LAR but no spread.**
+Real books are not uniform. 52 rows have spreads, 54 have totals, and the two
+incomplete rows correctly carry `implied_team_total = None` rather than a value
+derived from a guess.
+
+A fixture written from imagination would have been perfectly rectangular and
+would have hidden this. It is the same lesson the real `DKSalaries.csv` taught
+when it revealed the `Status` column — recorded reality beats invented
+reality, and cheaply.
+
+One of my own tests was also wrong again: I listed `K.C` as an unresolvable
+string, but the normalizer strips punctuation *on purpose* so that `K.C.` and
+`A.J.` resolve. Replaced with a test asserting that behaviour rather than
+forbidding it.
+
+### Secrets handling
+
+`dfs_pipeline.secrets` reads credentials from the environment first, then
+`.env`. It deliberately **does not mutate `os.environ`** — a secret injected
+there leaks into every subprocess and crash report thereafter. The API key is
+scrubbed from every error message and log line the adapter produces, with
+tests asserting it, because credentials escape through exception text far more
+often than through source code. The `.env.example` placeholder counts as
+missing, so an unfilled copy produces "ODDS_API_KEY is not set" rather than a
+confusing 401.
+
+313 tests, 100% statement coverage.
+
 ### Open items
 - Verify the bulk-upload CSV format against a real DK entries template
   (**BLOCKED** — needs slates to open).

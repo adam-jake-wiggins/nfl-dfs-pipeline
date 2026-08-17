@@ -25,8 +25,15 @@ import sys
 from pathlib import Path
 
 from dfs_pipeline import __version__
-from dfs_pipeline.adapters import DraftKingsCsvAdapter, SlateSchemaError
-from dfs_pipeline.capture import ingest_slate
+from dfs_pipeline.adapters.odds_api import API_BASE
+from dfs_pipeline.adapters import (
+    DraftKingsCsvAdapter,
+    OddsApiAdapter,
+    OddsApiError,
+    SlateSchemaError,
+)
+from dfs_pipeline.capture import ingest_odds, ingest_slate
+from dfs_pipeline.secrets import MissingSecret, read_odds_api_key
 from dfs_pipeline.config import Config, ConfigError, load_config
 from dfs_pipeline.runs import RunDirectory
 from dfs_pipeline.store import SnapshotStore, StoreError
@@ -59,6 +66,34 @@ def build_parser() -> argparse.ArgumentParser:
         "--salaries",
         metavar="CSV",
         help="DraftKings salary export (DKSalaries.csv) to ingest",
+    )
+    src.add_argument(
+        "--odds",
+        action="store_true",
+        help="Capture betting spreads and totals from The Odds API. Requires "
+             "ODDS_API_KEY in the environment or .env.",
+    )
+    src.add_argument(
+        "--odds-days",
+        type=int,
+        default=8,
+        metavar="N",
+        help="Only capture games kicking off within N days (default: 8). "
+             "Without a window the API returns the entire season.",
+    )
+    src.add_argument(
+        "--min-quota",
+        type=int,
+        default=25,
+        metavar="N",
+        help="Refuse an odds call that would leave fewer than N credits "
+             "(default: 25). Guards against a scheduled job exhausting the "
+             "monthly budget before a live slate.",
+    )
+    src.add_argument(
+        "--quota",
+        action="store_true",
+        help="Report remaining Odds API credits and exit. Costs nothing.",
     )
 
     when = parser.add_argument_group("timestamps")
@@ -131,8 +166,13 @@ def main(argv: list[str] | None = None) -> int:
         print(config.describe())
         return EXIT_OK
 
-    if not args.salaries:
-        parser.error("nothing to capture. Supply --salaries CSV (see --help).")
+    if args.quota:
+        return _report_quota(args)
+
+    if not args.salaries and not args.odds:
+        parser.error(
+            "nothing to capture. Supply --salaries CSV and/or --odds (see --help)."
+        )
 
     return _run(args, config)
 
@@ -142,8 +182,8 @@ def _run(args: argparse.Namespace, config: Config) -> int:
 
     if args.dry_run:
         # A dry run touches neither the store nor the run directory: it exists
-        # to answer "would this file be accepted?" without side effects.
-        return _dry_run(args.salaries, console_level)
+        # to answer "would this input be accepted?" without side effects.
+        return _dry_run(args, console_level)
 
     try:
         with RunDirectory(
@@ -158,44 +198,19 @@ def _run(args: argparse.Namespace, config: Config) -> int:
             }
             log.info("store: %s", config.store_path)
 
-            adapter = DraftKingsCsvAdapter(args.salaries)
             store = SnapshotStore.open(config.store_path)
             try:
-                result = ingest_slate(
-                    store,
-                    adapter,
-                    effective_at=args.effective_at,
-                    captured_at=args.captured_at,
-                    original_filename=Path(args.salaries).name,
-                    on_duplicate=config.on_duplicate,
-                )
+                if args.salaries:
+                    _capture_salaries(args, config, store, run)
+                if args.odds:
+                    _capture_odds(args, config, store, run)
             finally:
                 store.close()
-
-            run.record_input(
-                args.salaries,
-                sha256=result.artifact_sha256,
-                byte_size=len(adapter.raw_bytes()),
-                kind="dk_salaries_csv",
-            )
-            run.results.update(
-                {
-                    "source": result.source,
-                    "players": result.players,
-                    "defenses": result.defenses,
-                    "entries": result.total_entries,
-                    "games": result.games,
-                    "observations": result.observations,
-                    "effective_at": result.effective_at,
-                    "captured_at": result.captured_at,
-                }
-            )
-            _report(result, run.path, config)
             return EXIT_OK
 
     except SlateSchemaError as exc:
         print(f"error: {exc}", file=sys.stderr)
-        print("The file was rejected; nothing was written.", file=sys.stderr)
+        print("The input was rejected; nothing was recorded.", file=sys.stderr)
         return EXIT_DATA
     except sqlite3.IntegrityError as exc:
         print(f"error: {exc}", file=sys.stderr)
@@ -207,6 +222,12 @@ def _run(args: argparse.Namespace, config: Config) -> int:
                 file=sys.stderr,
             )
         return EXIT_DATA
+    except MissingSecret as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_ERROR
+    except OddsApiError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_ERROR
     except (StoreError, OSError, sqlite3.Error) as exc:
         # sqlite3.Error is caught explicitly because it descends from neither
         # StoreError nor OSError: an unopenable database file raises
@@ -217,8 +238,105 @@ def _run(args: argparse.Namespace, config: Config) -> int:
         return EXIT_ERROR
 
 
-def _dry_run(salaries: str, console_level: int) -> int:
+def _capture_salaries(args, config: Config, store, run) -> None:
+    adapter = DraftKingsCsvAdapter(args.salaries)
+    result = ingest_slate(
+        store,
+        adapter,
+        effective_at=args.effective_at,
+        captured_at=args.captured_at,
+        original_filename=Path(args.salaries).name,
+        on_duplicate=config.on_duplicate,
+    )
+    run.record_input(
+        args.salaries,
+        sha256=result.artifact_sha256,
+        byte_size=len(adapter.raw_bytes()),
+        kind="dk_salaries_csv",
+    )
+    run.results["slate"] = {
+        "source": result.source,
+        "players": result.players,
+        "defenses": result.defenses,
+        "entries": result.total_entries,
+        "games": result.games,
+        "observations": result.observations,
+        "effective_at": result.effective_at,
+        "captured_at": result.captured_at,
+    }
+
+    print(f"Slate: captured {result.total_entries} entries "
+          f"({result.players} players, {result.defenses} defenses) "
+          f"across {result.games} games.")
+    print(f"  observations : {result.observations:,}")
+    print(f"  effective_at : {result.effective_at}")
+    print(f"  captured_at  : {result.captured_at}")
+    print(f"  artifact     : {result.artifact_sha256[:16]}...")
+
+
+def _capture_odds(args, config: Config, store, run) -> None:
+    adapter = OddsApiAdapter(
+        read_odds_api_key(),
+        days_ahead=args.odds_days,
+        min_quota=args.min_quota,
+    )
+    result = ingest_odds(
+        store,
+        adapter,
+        captured_at=args.captured_at,
+        on_duplicate=config.on_duplicate,
+    )
+    run.record.inputs.append(
+        {
+            "kind": "odds_api_json",
+            "path": f"{API_BASE}/sports/americanfootball_nfl/odds/",
+            "filename": None,
+            "sha256": result.artifact_sha256,
+            "byte_size": None,
+        }
+    )
+    run.results["odds"] = {
+        "games": result.games,
+        "bookmakers": result.bookmakers,
+        "team_rows": result.team_rows,
+        "observations": result.observations,
+        "captured_at": result.captured_at,
+        "quota_remaining": result.quota_remaining,
+        "window_days": args.odds_days,
+    }
+
+    print(f"Odds: captured {result.games} games x {result.bookmakers} bookmakers "
+          f"({result.team_rows} team rows).")
+    print(f"  observations : {result.observations:,}")
+    print(f"  captured_at  : {result.captured_at}")
+    print(f"  artifact     : {result.artifact_sha256[:16]}...")
+    if result.quota_remaining is not None:
+        print(f"  quota left   : {result.quota_remaining}")
+
+
+def _report_quota(args) -> int:
+    """Print remaining Odds API credits. Costs nothing -- /sports is free."""
+    try:
+        adapter = OddsApiAdapter(read_odds_api_key(), min_quota=args.min_quota)
+        remaining = adapter.check_quota()
+    except (MissingSecret, OddsApiError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_ERROR
+    print(f"Odds API credits remaining : {remaining}")
+    print(f"Cost of one odds capture   : {adapter.credit_cost} "
+          f"({len(adapter.regions)} region x {len(adapter.markets)} markets)")
+    print(f"Captures affordable        : {max(0, remaining - args.min_quota) // adapter.credit_cost}"
+          f"  (down to the --min-quota floor of {args.min_quota})")
+    return EXIT_OK
+
+
+def _dry_run(args, console_level: int) -> int:
     logging.basicConfig(level=console_level, format="%(levelname)s: %(message)s")
+    if not args.salaries:
+        print("Dry run supports --salaries only; --odds would spend credits.",
+              file=sys.stderr)
+        return EXIT_USAGE
+    salaries = args.salaries
     try:
         players = DraftKingsCsvAdapter(salaries).load()
     except SlateSchemaError as exc:
@@ -236,18 +354,6 @@ def _dry_run(salaries: str, console_level: int) -> int:
     print("\nDry run: nothing was written.")
     return EXIT_OK
 
-
-def _report(result, run_path: Path, config: Config) -> None:
-    """Always-visible summary. A silent success is indistinguishable from a no-op."""
-    print(f"Captured {result.total_entries} entries "
-          f"({result.players} players, {result.defenses} defenses) "
-          f"across {result.games} games.")
-    print(f"  observations : {result.observations:,}")
-    print(f"  effective_at : {result.effective_at}")
-    print(f"  captured_at  : {result.captured_at}")
-    print(f"  artifact     : {result.artifact_sha256[:16]}...")
-    print(f"  store        : {config.store_path}")
-    print(f"  run          : {run_path}")
 
 
 if __name__ == "__main__":  # pragma: no cover

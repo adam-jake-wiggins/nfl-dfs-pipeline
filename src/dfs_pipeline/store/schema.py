@@ -262,6 +262,10 @@ SEED_METRICS: tuple[tuple[str, str, str | None, str], ...] = (
     ("spread", "num", "points", "Point spread from the team's perspective; negative favours"),
     ("game_total", "num", "points", "Over/under for the game"),
     ("moneyline", "num", "american_odds", "Moneyline price for the team"),
+    ("odds_team", "text", None, "Canonical team abbreviation this odds row is about"),
+    ("odds_game", "text", None, "Game key in AWAY@HOME form, joinable to dk_game"),
+    ("odds_commence_time", "text", None, "Scheduled kickoff, ISO 8601 UTC"),
+    ("implied_team_total", "num", "points", "(game_total / 2) - (spread / 2)"),
     # --- Realized outcomes ---
     ("actual_dk_points", "num", "points", "Realized DraftKings points, computed at DK Classic scoring"),
     ("actual_ownership", "num", "percent", "Realized ownership from a contest-results export"),

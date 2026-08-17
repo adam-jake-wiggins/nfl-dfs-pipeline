@@ -15,7 +15,7 @@ from datetime import datetime
 from dfs_pipeline.adapters.base import SalarySource, SlatePlayer
 from dfs_pipeline.store import SnapshotStore, normalize_timestamp, utc_now
 
-__all__ = ["CaptureResult", "ingest_slate"]
+__all__ = ["CaptureResult", "OddsCaptureResult", "ingest_slate", "ingest_odds"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -90,6 +90,92 @@ def ingest_slate(
         effective_at=effective,
         captured_at=captured,
     )
+
+
+@dataclass(frozen=True, slots=True)
+class OddsCaptureResult:
+    """What an odds capture did, for the run report."""
+
+    artifact_sha256: str
+    games: int
+    bookmakers: int
+    team_rows: int
+    observations: int
+    captured_at: str
+    quota_remaining: int | None = None
+
+
+def ingest_odds(
+    store: SnapshotStore,
+    source,
+    *,
+    captured_at: str | datetime | None = None,
+    on_duplicate: str = "error",
+) -> OddsCaptureResult:
+    """Archive an odds response and record its observations.
+
+    Unlike the DraftKings CSV, odds carry their *own* timestamps: each market
+    reports the moment the bookmaker last moved that line. Those become
+    ``effective_at``, per row, while ``captured_at`` is when we read them.
+    There is no single effective time for the whole response -- one book may
+    have moved a line minutes ago and another hours ago -- which is precisely
+    why the store keeps the two timestamps per observation rather than per
+    capture.
+    """
+    captured = normalize_timestamp(captured_at) if captured_at else utc_now()
+
+    raw = source.raw_bytes()
+    sha = store.put_artifact(
+        raw,
+        source=source.source_name,
+        kind="odds_snapshot",
+        retrieved_at=captured,
+    )
+
+    rows = source.loads(raw)
+    observations = list(_odds_observations(rows, captured))
+    written = store.record_many(
+        observations, artifact_sha256=sha, on_duplicate=on_duplicate
+    )
+
+    return OddsCaptureResult(
+        artifact_sha256=sha,
+        games=len({r.event_id for r in rows}),
+        bookmakers=len({r.bookmaker for r in rows}),
+        team_rows=len(rows),
+        observations=written,
+        captured_at=captured,
+        quota_remaining=getattr(source, "last_quota_remaining", None),
+    )
+
+
+def _odds_observations(rows, captured: str):
+    """Flatten per-team odds into narrow observation rows.
+
+    Each bookmaker becomes its own source. Books disagree, and that
+    disagreement is signal that cannot be recovered from a consensus computed
+    at capture time and stored alone.
+    """
+    for row in rows:
+        base = dict(
+            subject_type="team",
+            source=row.source_name,
+            source_subject_id=row.subject_id,
+            effective_at=row.effective_at,
+            captured_at=captured,
+        )
+        yield {**base, "metric": "odds_team", "value": row.team}
+        yield {**base, "metric": "odds_game", "value": row.game_key}
+        yield {**base, "metric": "odds_commence_time", "value": row.commence_time}
+
+        if row.spread is not None:
+            yield {**base, "metric": "spread", "value": row.spread}
+        if row.game_total is not None:
+            yield {**base, "metric": "game_total", "value": row.game_total}
+
+        implied = row.implied_team_total
+        if implied is not None:
+            yield {**base, "metric": "implied_team_total", "value": implied}
 
 
 def _observations_for(
