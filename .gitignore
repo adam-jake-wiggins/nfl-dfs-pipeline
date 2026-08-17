@@ -1,0 +1,65 @@
+# ---------------------------------------------------------------------------
+# Secrets
+# ---------------------------------------------------------------------------
+# .env holds real credentials and is never committed.
+# .env.example is committed as a template and holds only placeholders.
+.env
+.env.*
+!.env.example
+
+# ---------------------------------------------------------------------------
+# Private working documents
+# ---------------------------------------------------------------------------
+# Source specifications written as first-person working notes. Their
+# substantive content (domain rules, acceptance criteria, non-goals) is
+# restated in README.md, TESTING.md, and DEVLOG.md as project documentation.
+_local/
+
+# ---------------------------------------------------------------------------
+# DraftKings account-linked exports
+# ---------------------------------------------------------------------------
+# Contest-standings exports carry usernames and entry IDs. Salary and entry
+# files are slate-specific and large. Sanitized fixtures are re-included below.
+DKSalaries*.csv
+DKEntries*.csv
+*contest-standings*.csv
+*contest_standings*.csv
+
+# ---------------------------------------------------------------------------
+# Captured data store and run outputs
+# ---------------------------------------------------------------------------
+data/
+runs/
+*.sqlite
+*.sqlite3
+*.db
+*.parquet
+
+# Test fixtures are small, sanitized, and MUST be committed so that a stranger
+# cloning this repository can run the suite. This negation works because no
+# parent directory of tests/ is ignored.
+!tests/fixtures/**
+
+# ---------------------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ---------------------------------------------------------------------------
+# macOS and editors
+# ---------------------------------------------------------------------------
+.DS_Store
+.idea/
+.vscode/
