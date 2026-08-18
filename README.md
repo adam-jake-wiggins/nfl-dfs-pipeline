@@ -138,6 +138,20 @@ naming any player above $5,000 without one. The prototype's worst defect was
 a silent name-match failure; a match rate nobody reports is a match rate
 nobody checks.
 
+Build upload-ready lineups from a slate and projections:
+
+```bash
+uv run dfs-optimize --salaries DKSalaries.csv \
+    --projections DFF_export.csv \
+    --lineups 20 --stack 2 --bringback 1 --max-exposure 0.4
+```
+
+Each run writes `lineups.csv` in DraftKings' bulk-upload format alongside a
+match report, a validation report, and run metadata carrying every input's
+SHA-256. Lineups are re-validated **after** the solve — roster shape, salary
+cap, distinct games, no duplicate player — so a drift between the model and
+the contest rules fails loudly rather than shipping.
+
 Score a completed week from nflverse at DraftKings Classic rules:
 
 ```bash
@@ -180,7 +194,7 @@ rejected.
 uv run pytest --cov=dfs_pipeline --cov-report=term-missing
 ```
 
-**VERIFIED (2026-08-17):** 667 tests, 100% statement coverage. The suite
+**VERIFIED (2026-08-17):** 692 tests, 100% statement coverage. The suite
 includes property-based tests over generated inputs, malformed-input fixtures
 asserting each failure names its file/row/column, and fixtures recorded from
 real DraftKings and Odds API responses. No test touches the network — a suite

@@ -37,6 +37,7 @@ dev = [
 # Console entry points. After installation these are real commands on PATH,
 # so `dfs-snapshot` works from any directory.
 dfs-snapshot = "dfs_pipeline.cli.snapshot:main"
+dfs-optimize = "dfs_pipeline.cli.optimize:main"
 
 [build-system]
 requires = ["hatchling"]

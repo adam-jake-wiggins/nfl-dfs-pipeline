@@ -35,6 +35,7 @@ from __future__ import annotations
 import dataclasses
 import logging
 import time
+from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 
@@ -48,7 +49,29 @@ from dfs_pipeline.contest import (
 )
 from dfs_pipeline.lineup import assign_slots
 
-__all__ = ["OptimizerReport", "Settings", "optimize", "optimize_simultaneous"]
+__all__ = [
+    "BRINGBACK_POSITIONS",
+    "position_shortfalls",
+    "OptimizerReport",
+    "STACK_POSITIONS",
+    "Settings",
+    "optimize",
+    "optimize_simultaneous",
+]
+
+#: Positions that count toward a QB stack. Receivers only: a running back on
+#: the QB's own team correlates weakly, and often negatively -- a team that
+#: runs the ball is a team not throwing it.
+STACK_POSITIONS = frozenset({"WR", "TE"})
+
+#: Positions that count as a bring-back from the opposing team. Running backs
+#: are included here because the correlation being bought is *game total*
+#: rather than passing volume: a shootout lifts everyone on both sides.
+#:
+#: The prototype used exactly these two sets but never said why they differed,
+#: which made the asymmetry look like an oversight. It is a real distinction
+#: and is now stated.
+BRINGBACK_POSITIONS = frozenset({"WR", "TE", "RB"})
 
 log = logging.getLogger("dfs_pipeline.optimizer")
 
@@ -122,6 +145,11 @@ def _build(pool: Sequence, settings: Settings, suffix: str = ""):
              pulp.lpSum(problem_vars[i] for i in indices) <= high)
         )
 
+    if settings.stack or settings.bringback:
+        constraints.extend(
+            _correlation_constraints(pool, problem_vars, settings)
+        )
+
     constraints.append(
         ("salary cap",
          pulp.lpSum(pool[i].salary * problem_vars[i] for i in problem_vars)
@@ -134,6 +162,54 @@ def _build(pool: Sequence, settings: Settings, suffix: str = ""):
              >= settings.min_salary)
         )
     return problem_vars, constraints
+
+
+def _correlation_constraints(pool, problem_vars, settings):
+    """QB stacking and bring-back, plus the QB-versus-own-DST exclusion.
+
+    Each is written per quarterback and gated on that quarterback being
+    selected, so the constraint is inert unless he is in the lineup.
+    """
+    built = []
+    quarterbacks = [i for i, p in enumerate(pool) if p.position == "QB"]
+
+    for qb in quarterbacks:
+        team = pool[qb].team
+        opponent = pool[qb].opponent
+
+        if settings.stack:
+            mates = [
+                i for i, p in enumerate(pool)
+                if p.team == team and p.position in STACK_POSITIONS
+            ]
+            built.append((
+                f"stack for {pool[qb].name}",
+                pulp.lpSum(problem_vars[i] for i in mates)
+                >= settings.stack * problem_vars[qb],
+            ))
+
+        if settings.bringback and opponent:
+            opposing = [
+                i for i, p in enumerate(pool)
+                if p.team == opponent and p.position in BRINGBACK_POSITIONS
+            ]
+            if opposing:
+                built.append((
+                    f"bring-back for {pool[qb].name}",
+                    pulp.lpSum(problem_vars[i] for i in opposing)
+                    >= settings.bringback * problem_vars[qb],
+                ))
+
+        # Never pair a quarterback with the defense playing against him: the
+        # correlation is strongly negative by construction.
+        for dst in (i for i, p in enumerate(pool) if p.position == "DST"):
+            if pool[dst].team and pool[dst].team == opponent:
+                built.append((
+                    f"{pool[qb].name} vs opposing DST",
+                    problem_vars[qb] + problem_vars[dst] <= 1,
+                ))
+
+    return built
 
 
 def _game_constraints(pool, problem_vars, settings, suffix=""):
@@ -159,11 +235,38 @@ def _game_constraints(pool, problem_vars, settings, suffix=""):
     return built
 
 
+def position_shortfalls(pool: Sequence) -> list[str]:
+    """Positions the pool cannot fill, checked before any solve runs.
+
+    A pool missing an entire position makes every lineup infeasible, and the
+    solver reports only "infeasible" -- which is true and useless. This is a
+    realistic failure rather than a theoretical one: FantasyPros ships defenses
+    in a separate file, and several projection sources omit them entirely, so a
+    pool built by joining a slate to projections can silently arrive with zero
+    DSTs.
+    """
+    available = Counter(p.position for p in pool)
+    return [
+        f"{position}: {available.get(position, 0)} in the pool, {low} required"
+        for position, (low, _high) in POSITION_BOUNDS.items()
+        if available.get(position, 0) < low
+    ]
+
+
 def optimize(pool: Sequence, settings: Settings, *, projection_of=None):
     """Build lineups sequentially. Returns (lineups, report)."""
     projection_of = projection_of or (lambda p: getattr(p, "projection", 0.0))
     report = OptimizerReport(requested=settings.lineups, mode="sequential")
     started = time.perf_counter()
+
+    shortfalls = position_shortfalls(pool)
+    if shortfalls:
+        report.binding_constraint = (
+            "the player pool cannot fill every roster position -- "
+            + "; ".join(shortfalls)
+        )
+        report.seconds = time.perf_counter() - started
+        return [], report
 
     lineups: list[list] = []
     previous: list[list[int]] = []

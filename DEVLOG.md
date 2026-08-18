@@ -1398,6 +1398,92 @@ loop while the full suite still exercises both formulations.
 
 667 tests, 98% coverage.
 
+### `dfs-optimize`: raw inputs to an upload-ready file in one command
+
+The acceptance criterion:
+
+> "One command runs raw inputs -> upload-ready lineups, and every run writes a
+> self-contained run directory: lineups.csv, match report, validation report,
+> and run metadata."
+
+Done. Against the real Week 1 slate:
+
+```
+Slate: 716 entries across 12 games (DKSalaries_2026wk1.csv).
+Projections (DFF): 714/716 matched (99.7%).
+  WARNING: 2 entry(s) at $5,000+ have no projection:
+    $ 8,000  Jahmyr Gibbs (RB)
+pool: 691/714 eligible   (15 IR, 8 OUT excluded)
+optimizer: 20/20 lineups (sequential, 24.04s)
+Validation: 20 lineup(s), 0 problems.
+Wrote 20 lineup(s) to runs/.../lineups.csv
+```
+
+The run directory holds `lineups.csv`, `match_report.json`,
+`validation_report.json`, `run.json` and `run.log`, with a SHA-256 for every
+input and the full resolved settings.
+
+### Validation runs *after* the solver, deliberately
+
+Every lineup is re-checked once the solver returns: roster shape, salary cap,
+distinct games, no duplicate player, and it must survive slot assignment. The
+solver already enforces all of that — which is exactly why the check is worth
+having. It catches the case where our model and our understanding of the rules
+have drifted apart. A validation report that always passes costs nothing; one
+that ever fails has earned its keep.
+
+### A useless error message, found by running it
+
+The first end-to-end run produced **zero lineups** from a 665-player pool, and
+reported:
+
+```
+binding constraint: player pool too small or too constrained
+```
+
+True, and useless. The real cause: **the projections file contained no
+defenses**, so the joined pool had zero DSTs and no legal lineup could exist.
+
+That is not a contrived failure. **FantasyPros ships defenses in a separate
+file entirely**, and several projection sources omit them — so a pool built by
+joining a slate to projections can silently arrive with an entire position
+missing. Added a pre-solve feasibility check that names it:
+
+```
+binding constraint: the player pool cannot fill every roster position
+                    -- DST: 0 in the pool, 1 required
+```
+
+The lesson is the recurring one: an error message that is technically accurate
+but does not name the cause is a message that costs an hour. It was only found
+by running the command against real data — every unit test passed throughout.
+
+### Stacking and bring-back, with the asymmetry explained
+
+`Settings` declared `stack` and `bringback`; the optimizer ignored them. Now
+implemented, along with the QB-versus-opposing-DST exclusion.
+
+The prototype used **WR/TE for stacks** but **WR/TE/RB for bring-backs** and
+never said why, which made the asymmetry look like an oversight. It is a real
+distinction and is now stated: a running back on the QB's own team correlates
+weakly and often negatively — a team that runs is a team not throwing — while a
+bring-back is buying *game total* rather than passing volume, and a shootout
+lifts everyone on both sides.
+
+Verified on the real slate: `--stack 2 --bringback 1` produces exactly two
+same-team receivers and one opposing player, and no lineup ever pairs a
+quarterback with the defense facing him.
+
+### Unprojected players are dropped, not zeroed
+
+A player with no projection is excluded from the pool rather than entered at
+zero. Zero is a claim — "this player will score nothing" — and the solver would
+treat it as strictly bad. Absent is a different statement, and the match report
+names every unprojected entry above $5,000 so the gap is visible rather than
+silently filled.
+
+692 tests, 98% coverage.
+
 ### Open items
 
 Nothing is BLOCKED. Everything below can proceed now.
