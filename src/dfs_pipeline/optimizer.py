@@ -1,0 +1,326 @@
+"""Lineup construction as a mixed-integer program, in two formulations.
+
+Sequential vs simultaneous
+==========================
+Building N lineups admits two designs.
+
+**Sequential** solves N times, each solve forbidding overlap with what came
+before and zeroing out players who have hit their exposure cap. It is what the
+prototype does and what ``pydfs-lineup-optimizer`` does. The objection is that
+it is a heuristic: each solve is optimal given the earlier ones, but the *set*
+is not jointly optimal.
+
+**Simultaneous** puts all N lineups in one program -- variables ``x[l][i]``,
+roster and salary constraints repeated per lineup, exposure caps as sums
+across lineups, and pairwise overlap limits. That set is provably optimal.
+
+The catch is symmetry. Lineups are interchangeable, so every solution has N!
+equivalent relabellings and branch-and-bound explores them all. Pairwise
+uniqueness also grows as N², which at 150 lineups is over eleven thousand
+constraints across a 500-player pool.
+
+Both are implemented here so the choice rests on measured runtime rather than
+on assertion. See DEVLOG.md for the numbers.
+
+Shortfalls are loud
+===================
+When fewer lineups are produced than requested, the run says so and diagnoses
+*which* constraint bound, by relaxing each optional constraint in turn and
+reporting which relaxation restores feasibility. "Requested 20, produced 11"
+without a reason is not an actionable message.
+"""
+
+from __future__ import annotations
+
+import dataclasses
+import logging
+import time
+from collections.abc import Sequence
+from dataclasses import dataclass, field
+
+import pulp
+
+from dfs_pipeline.contest import (
+    MIN_DISTINCT_GAMES,
+    POSITION_BOUNDS,
+    ROSTER_SIZE,
+    SALARY_CAP,
+)
+from dfs_pipeline.lineup import assign_slots
+
+__all__ = ["OptimizerReport", "Settings", "optimize", "optimize_simultaneous"]
+
+log = logging.getLogger("dfs_pipeline.optimizer")
+
+
+@dataclass(frozen=True, slots=True)
+class Settings:
+    """Everything that shapes a lineup set."""
+
+    lineups: int = 1
+    salary_cap: int = SALARY_CAP
+    min_salary: int = 0
+    min_unique: int = 1
+    max_exposure: float = 1.0
+    stack: int = 0
+    bringback: int = 0
+    min_games: int = MIN_DISTINCT_GAMES
+    time_limit: float | None = None
+
+
+@dataclass
+class OptimizerReport:
+    """What the solve did, including what it could not do."""
+
+    requested: int = 0
+    produced: int = 0
+    mode: str = "sequential"
+    seconds: float = 0.0
+    binding_constraint: str | None = None
+    per_lineup_seconds: list[float] = field(default_factory=list)
+
+    @property
+    def short(self) -> bool:
+        return self.produced < self.requested
+
+    def render(self) -> str:
+        lines = [
+            f"optimizer: {self.produced}/{self.requested} lineups "
+            f"({self.mode}, {self.seconds:.2f}s)"
+        ]
+        if self.short:
+            lines.append(
+                f"  WARNING: requested {self.requested}, produced {self.produced}"
+            )
+            lines.append(
+                f"  binding constraint: {self.binding_constraint or 'undiagnosed'}"
+            )
+        return "\n".join(lines)
+
+
+def _build(pool: Sequence, settings: Settings, suffix: str = ""):
+    """The per-lineup constraint set, shared by both formulations."""
+    problem_vars = {
+        i: pulp.LpVariable(f"x{suffix}_{i}", cat="Binary") for i in range(len(pool))
+    }
+    constraints = []
+
+    def by_position(position):
+        return [i for i, p in enumerate(pool) if p.position == position]
+
+    constraints.append(
+        ("roster size", pulp.lpSum(problem_vars.values()) == ROSTER_SIZE)
+    )
+    for position, (low, high) in POSITION_BOUNDS.items():
+        indices = by_position(position)
+        constraints.append(
+            (f"{position} minimum",
+             pulp.lpSum(problem_vars[i] for i in indices) >= low)
+        )
+        constraints.append(
+            (f"{position} maximum",
+             pulp.lpSum(problem_vars[i] for i in indices) <= high)
+        )
+
+    constraints.append(
+        ("salary cap",
+         pulp.lpSum(pool[i].salary * problem_vars[i] for i in problem_vars)
+         <= settings.salary_cap)
+    )
+    if settings.min_salary:
+        constraints.append(
+            ("minimum salary",
+             pulp.lpSum(pool[i].salary * problem_vars[i] for i in problem_vars)
+             >= settings.min_salary)
+        )
+    return problem_vars, constraints
+
+
+def _game_constraints(pool, problem_vars, settings, suffix=""):
+    """At least N distinct games, via one indicator per game."""
+    games = {}
+    for i, player in enumerate(pool):
+        games.setdefault(player.game.key, []).append(i)
+
+    indicators = {
+        key: pulp.LpVariable(f"g{suffix}_{n}", cat="Binary")
+        for n, key in enumerate(games)
+    }
+    built = []
+    for key, indices in games.items():
+        built.append(
+            (f"game {key} indicator",
+             indicators[key] <= pulp.lpSum(problem_vars[i] for i in indices))
+        )
+    built.append(
+        ("minimum distinct games",
+         pulp.lpSum(indicators.values()) >= settings.min_games)
+    )
+    return built
+
+
+def optimize(pool: Sequence, settings: Settings, *, projection_of=None):
+    """Build lineups sequentially. Returns (lineups, report)."""
+    projection_of = projection_of or (lambda p: getattr(p, "projection", 0.0))
+    report = OptimizerReport(requested=settings.lineups, mode="sequential")
+    started = time.perf_counter()
+
+    lineups: list[list] = []
+    previous: list[list[int]] = []
+    usage: dict[str, int] = {}
+    cap = max(1, int(settings.max_exposure * settings.lineups))
+
+    for _ in range(settings.lineups):
+        loop_started = time.perf_counter()
+        problem = pulp.LpProblem("dk", pulp.LpMaximize)
+        variables, constraints = _build(pool, settings)
+        problem += pulp.lpSum(
+            projection_of(pool[i]) * variables[i] for i in variables
+        )
+        for _, constraint in constraints:
+            problem += constraint
+        for _, constraint in _game_constraints(pool, variables, settings):
+            problem += constraint
+
+        if settings.max_exposure < 1.0:
+            for i, player in enumerate(pool):
+                if usage.get(player.source_player_id, 0) >= cap:
+                    problem += variables[i] == 0
+
+        for earlier in previous:
+            problem += (
+                pulp.lpSum(variables[i] for i in earlier)
+                <= ROSTER_SIZE - settings.min_unique
+            )
+
+        status = problem.solve(
+            pulp.PULP_CBC_CMD(msg=0, timeLimit=settings.time_limit)
+        )
+        report.per_lineup_seconds.append(time.perf_counter() - loop_started)
+
+        if pulp.LpStatus[status] != "Optimal":
+            report.binding_constraint = _diagnose(pool, settings, previous, usage, cap)
+            break
+
+        chosen = [i for i in variables if variables[i].value() and variables[i].value() > 0.5]
+        previous.append(chosen)
+        for i in chosen:
+            key = pool[i].source_player_id
+            usage[key] = usage.get(key, 0) + 1
+        lineups.append([pool[i] for i in chosen])
+
+    report.produced = len(lineups)
+    report.seconds = time.perf_counter() - started
+    return lineups, report
+
+
+def optimize_simultaneous(pool: Sequence, settings: Settings, *, projection_of=None):
+    """Build all lineups in one program. Provably optimal as a set."""
+    projection_of = projection_of or (lambda p: getattr(p, "projection", 0.0))
+    report = OptimizerReport(requested=settings.lineups, mode="simultaneous")
+    started = time.perf_counter()
+
+    problem = pulp.LpProblem("dk_simultaneous", pulp.LpMaximize)
+    per_lineup = []
+    objective = []
+
+    for l in range(settings.lineups):
+        variables, constraints = _build(pool, settings, suffix=f"_{l}")
+        for _, constraint in constraints:
+            problem += constraint
+        for _, constraint in _game_constraints(pool, variables, settings, suffix=f"_{l}"):
+            problem += constraint
+        per_lineup.append(variables)
+        objective.extend(
+            projection_of(pool[i]) * variables[i] for i in variables
+        )
+
+    problem += pulp.lpSum(objective)
+
+    # Exposure across the whole set -- the constraint sequential can only
+    # approximate, because it does not know what later lineups will want.
+    if settings.max_exposure < 1.0:
+        cap = max(1, int(settings.max_exposure * settings.lineups))
+        for i in range(len(pool)):
+            problem += pulp.lpSum(v[i] for v in per_lineup) <= cap
+
+    # Pairwise uniqueness: O(N^2) constraints.
+    for a in range(settings.lineups):
+        for b in range(a + 1, settings.lineups):
+            # Overlap between two lineups is sum_i min(x_a_i, x_b_i), which is
+            # not linear. The standard linearisation adds one auxiliary binary
+            # per (pair, player) bounded below both. That term is what makes
+            # this formulation expensive: it grows as N^2 * |pool|.
+            if settings.min_unique > 0:
+                shared = [
+                    pulp.LpVariable(f"s_{a}_{b}_{i}", cat="Binary")
+                    for i in range(len(pool))
+                ]
+                for i, s in enumerate(shared):
+                    problem += s <= per_lineup[a][i]
+                    problem += s <= per_lineup[b][i]
+                problem += (
+                    pulp.lpSum(shared) <= ROSTER_SIZE - settings.min_unique
+                )
+
+    status = problem.solve(pulp.PULP_CBC_CMD(msg=0, timeLimit=settings.time_limit))
+    report.seconds = time.perf_counter() - started
+
+    if pulp.LpStatus[status] not in ("Optimal", "Not Solved"):
+        report.binding_constraint = f"solver returned {pulp.LpStatus[status]}"
+        report.produced = 0
+        return [], report
+
+    lineups = []
+    for variables in per_lineup:
+        chosen = [
+            i for i in variables
+            if variables[i].value() and variables[i].value() > 0.5
+        ]
+        if len(chosen) == ROSTER_SIZE:
+            lineups.append([pool[i] for i in chosen])
+
+    report.produced = len(lineups)
+    if report.short:
+        report.binding_constraint = (
+            "solver did not return a complete set within the time limit"
+        )
+    return lineups, report
+
+
+def _diagnose(pool, settings, previous, usage, cap) -> str:
+    """Name the constraint that made the next lineup infeasible.
+
+    Relaxes each optional constraint in turn and reports the first whose
+    removal restores feasibility. "Requested 20, produced 11" without a reason
+    is not actionable.
+    """
+    # dataclasses.replace, not **__dict__: Settings uses slots, so it has no
+    # __dict__ at all.
+    candidates = [
+        ("min_unique", lambda s: dataclasses.replace(s, min_unique=0)),
+        ("max_exposure", lambda s: dataclasses.replace(s, max_exposure=1.0)),
+        ("min_salary", lambda s: dataclasses.replace(s, min_salary=0)),
+    ]
+    for name, relax in candidates:
+        relaxed = relax(settings)
+        problem = pulp.LpProblem("probe", pulp.LpMaximize)
+        variables, constraints = _build(pool, relaxed)
+        problem += 0
+        for _, constraint in constraints:
+            problem += constraint
+        for _, constraint in _game_constraints(pool, variables, relaxed):
+            problem += constraint
+        if relaxed.max_exposure < 1.0:
+            for i, player in enumerate(pool):
+                if usage.get(player.source_player_id, 0) >= cap:
+                    problem += variables[i] == 0
+        if relaxed.min_unique > 0:
+            for earlier in previous:
+                problem += (
+                    pulp.lpSum(variables[i] for i in earlier)
+                    <= ROSTER_SIZE - relaxed.min_unique
+                )
+        if pulp.LpStatus[problem.solve(pulp.PULP_CBC_CMD(msg=0))] == "Optimal":
+            return f"{name} (relaxing it restores feasibility)"
+    return "player pool too small or too constrained for another distinct lineup"

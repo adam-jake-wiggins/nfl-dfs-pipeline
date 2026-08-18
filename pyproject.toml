@@ -50,6 +50,14 @@ testpaths = ["tests"]
 # -q keeps output readable; --strict-markers makes a typo'd marker an error
 # rather than a silently ignored test.
 addopts = "-q --strict-markers"
+filterwarnings = [
+    # PuLP 4.0 removes PULP_CBC_CMD and the direct LpVariable constructor.
+    # pyproject pins pulp<4.0, so this is a scheduled migration, not a live
+    # failure. Silenced here so it does not drown real warnings; tracked in
+    # DEVLOG open items.
+    "ignore:PULP_CBC_CMD is deprecated:DeprecationWarning",
+    "ignore:Constructing LpVariable:DeprecationWarning",
+]
 markers = [
     "slow: tests that take more than a second (deselect with '-m \"not slow\"')",
 ]

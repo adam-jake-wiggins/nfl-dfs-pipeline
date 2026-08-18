@@ -1325,6 +1325,79 @@ one that was always small.
 
 647 tests, 99% coverage.
 
+### Exposure control: the benchmark, and the answer
+
+The handoff asked for evidence rather than an assertion:
+
+> "Evaluate a simultaneous multi-lineup formulation at realistic scale
+> (~500 players, 20-150 lineups) with CBC; if intractable, keep sequential but
+> document the tradeoff... record runtime benchmarks in the DEVLOG so the
+> choice is documented evidence."
+
+Both formulations are implemented. Measured on the **real 693-player Week 1
+pool** (12 games), `min_unique=1`, `max_exposure=0.5`, `min_salary=49000`:
+
+| lineups | sequential | s/lineup | simultaneous | s/lineup |
+|---:|---:|---:|---:|---:|
+| 1 | 3.13s | 3.13 | **0.30s** | 0.30 |
+| 5 | 2.27s | 0.45 | **121.78s** | 24.36 |
+| 20 | 10.54s | 0.53 | *not attempted* | — |
+| 50 | 39.48s | 0.79 | *not attempted* | — |
+| 150 | **218.65s** | 1.46 | *not attempted* | — |
+
+**Sequential produced every lineup requested at every size, including 150.**
+Simultaneous hit a two-minute wall at **five**, and was abandoned there rather
+than left running: a formulation 50x slower at N=5 will not become tractable
+at N=150.
+
+**Why simultaneous collapses.** Two compounding costs. Lineups are
+interchangeable, so every solution has N! equivalent relabellings and
+branch-and-bound explores them; and pairwise uniqueness needs one auxiliary
+binary per (lineup pair, player), growing as N² × |pool| — at 150 lineups and
+693 players that is over seven million auxiliary variables. Sequential sidesteps
+both by fixing earlier lineups before solving the next.
+
+**Decision: keep sequential.** Not as a concession but on evidence. The
+framing established in Session 1 holds: `pydfs-lineup-optimizer` made the same
+choice after six years of development, and the numbers above show why. 150
+lineups in 3.6 minutes is entirely workable for a weekly run.
+
+**The honest cost, stated plainly.** Sequential is a heuristic. Each lineup is
+optimal given those already built, but the *set* is not jointly optimal —
+lineup 1 spends the best players without knowing lineup 40 will want them.
+Simultaneous would fix that and is provably optimal as a set; it is simply not
+reachable with CBC at this scale.
+
+Note the per-lineup cost climbing from 0.45s to 1.46s. That is the no-overlap
+constraint accumulating: by the Nth solve there are N−1 of them, so total work
+is quadratic. It is the same growth that kills the simultaneous formulation,
+just paid in smaller instalments.
+
+Also worth recording: N=1 took longer (3.13s) than N=5 in total (2.27s) —
+first-solve CBC warmup, not a modelling effect.
+
+### Shortfalls name the constraint that bound
+
+"Requested 20, produced 11" without a reason is not actionable. When a solve
+comes up short, each optional constraint is relaxed in turn and the first
+whose removal restores feasibility is named:
+
+```
+optimizer: 11/20 lineups (sequential, 4.31s)
+  WARNING: requested 20, produced 11
+  binding constraint: min_unique (relaxing it restores feasibility)
+```
+
+Every lineup every formulation produces is checked structurally in tests —
+roster shape, salary cap, distinct games, no duplicate player, and it must
+survive `assign_slots()`. That satisfies "every optimizer lineup provably
+DK-legal by test".
+
+Solver-heavy tests are marked `slow`, so `pytest -m "not slow"` stays a fast
+loop while the full suite still exercises both formulations.
+
+667 tests, 98% coverage.
+
 ### Open items
 
 Nothing is BLOCKED. Everything below can proceed now.
@@ -1341,4 +1414,8 @@ Nothing is BLOCKED. Everything below can proceed now.
   has broken a guessed schema; there is no reason to expect this one differs.
 - Benchmark simultaneous vs sequential multi-lineup solving at realistic scale
   (~500 players, 20–150 lineups). Phase 1.
+- Migrate off `PULP_CBC_CMD` and the direct `LpVariable` constructor before
+  PuLP 4.0 removes them. `pyproject.toml` pins `pulp<4.0`, so this is a
+  scheduled migration rather than a live failure; the warnings are
+  filtered in pytest config so they do not drown real ones.
 - Select a license.
