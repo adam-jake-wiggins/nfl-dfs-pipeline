@@ -43,6 +43,7 @@ does not.
 | `dk_vegas_adjust.py` | Reweights projections by betting-market implied team totals. | Prototype, synthetic data only |
 | `RESEARCH_ROADMAP.md` | The staged research plan, with explicit evidence gates on every paid escalation. | Current |
 | `DEVLOG.md` | Dated build log: what was built, what broke, what was decided and why. | Current |
+| `TESTING.md` | What the test suite proves, how to run it, and what it does not prove. | Current |
 
 Both scripts are committed here **in their original prototype form**, before
 any hardening. That is deliberate: the commit history is intended to show the
@@ -194,11 +195,14 @@ rejected.
 uv run pytest --cov=dfs_pipeline --cov-report=term-missing
 ```
 
-**VERIFIED (2026-08-17):** 692 tests, 100% statement coverage. The suite
+**VERIFIED (2026-08-17):** 705 tests, 100% statement coverage. The suite
 includes property-based tests over generated inputs, malformed-input fixtures
 asserting each failure names its file/row/column, and fixtures recorded from
 real DraftKings and Odds API responses. No test touches the network — a suite
 that spends real API quota is a suite people stop running.
+
+See [TESTING.md](TESTING.md) for what the suite proves, the conventions it
+follows, and — stated plainly — what it does not prove.
 
 ## License
 

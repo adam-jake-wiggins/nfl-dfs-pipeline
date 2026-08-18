@@ -1484,6 +1484,45 @@ silently filled.
 
 692 tests, 98% coverage.
 
+### Locks, and the defect they fix
+
+`--lock` forces a player into every lineup. The prototype had this and it was
+subtly wrong: it locked **by name**, with a constraint reading "exactly one
+player called that is selected". A lock on a duplicated name satisfies itself
+with *whichever* player of that name the solver prefers — putting a stranger in
+every lineup while appearing to work.
+
+Names are now resolved to a single source id up front, and an ambiguous name is
+an error naming every candidate with position, team and salary. The operator
+knows which one they meant; guessing is not the tool's job.
+
+Three ways locks fail, each caught before solving rather than surfacing as a
+bare infeasibility:
+
+- a locked player is **not in the pool** — usually filtered out by an injury
+  status, which is worth saying plainly since they were asked for by name;
+- **more locks than roster slots**;
+- locks that already **violate a position bound** — "2 locked QBs but a lineup
+  admits at most 1".
+
+One test needed rewriting to reach its target. Locking an ambiguous name
+through the CLI never got as far as the lock resolver, because the projections
+adapter rejects a file with colliding name keys first. That is correct defence
+in depth, so the test moved down to the unit that actually fixes the defect.
+
+### TESTING.md
+
+The last documentation deliverable. One page covering how to run the suite,
+the five kinds of test and why each exists, the guarantees enforced, the
+conventions worth knowing — and, deliberately, **what the suite does not
+prove**: rare scoring events, realized ownership, and the fact that nothing
+here speaks to whether the projections are any good.
+
+A test suite that implies more than it checks is its own kind of silent
+failure, which is the failure class this project exists to avoid.
+
+**705 tests, 98% coverage, ~42 seconds, no network.**
+
 ### Open items
 
 Nothing is BLOCKED. Everything below can proceed now.

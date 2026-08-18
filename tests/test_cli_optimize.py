@@ -386,3 +386,83 @@ def test_validation_catches_a_wrong_player_count():
         "expected 9" in issue
         for issue in validate_lineups([LEGAL[:-1]])[0]["issues"]
     )
+
+
+# ---------------------------------------------------------------------------
+# --lock
+# ---------------------------------------------------------------------------
+
+def test_a_locked_player_is_in_every_lineup(slate_csv, projections_csv, tmp_path):
+    runs = tmp_path / "runs"
+    assert run(slate_csv, projections_csv, runs, "--lineups", "3",
+               "--lock", "KC QB0") == EXIT_OK
+    rows = list(csv.reader((only_run_dir(runs) / "lineups.csv").open(newline="")))
+    for row in rows[1:]:
+        assert any("KC QB0" in cell for cell in row)
+
+
+def test_locks_are_recorded_in_run_metadata(slate_csv, projections_csv, tmp_path):
+    runs = tmp_path / "runs"
+    run(slate_csv, projections_csv, runs, "--lineups", "1", "--lock", "KC QB0")
+    config = json.loads((only_run_dir(runs) / "run.json").read_text())["config"]
+    assert config["locked"] == ["KC QB0"]
+
+
+def test_an_ambiguous_lock_is_refused_rather_than_guessed():
+    """The prototype's defect, tested at the unit that fixes it.
+
+    It locked by name with a constraint reading "exactly one player called
+    that is selected", which a duplicate name satisfies with the wrong person.
+    Here the name is resolved to a single id up front, and an ambiguous name
+    is an error naming every candidate.
+
+    Tested directly rather than through the CLI because the projections
+    adapter rejects a file with colliding name keys first -- correct
+    defence in depth, but it means the CLI path never reaches this code.
+    """
+    from dfs_pipeline.cli.optimize import _resolve_locks
+
+
+    pool = [
+        SlatePlayer(source_player_id="1", name="Same Name", position="WR",
+                    salary=5000, team="KC", game=GameInfo("KC", "BUF", None),
+                    entity_type="player"),
+        SlatePlayer(source_player_id="2", name="Same Name", position="WR",
+                    salary=7000, team="BUF", game=GameInfo("KC", "BUF", None),
+                    entity_type="player"),
+    ]
+    with pytest.raises(ValueError) as exc:
+        _resolve_locks(["Same Name"], pool)
+    message = str(exc.value)
+    assert "matches 2 players" in message
+    assert "cannot choose between them" in message
+    assert "$5,000" in message and "$7,000" in message
+
+
+def test_an_unambiguous_lock_resolves_to_one_id():
+    from dfs_pipeline.cli.optimize import _resolve_locks
+
+    pool = [
+        SlatePlayer(source_player_id="7", name="Ja'Marr Chase", position="WR",
+                    salary=8000, team="CIN", game=GameInfo("CIN", "KC", None),
+                    entity_type="player"),
+    ]
+    # Spelling variants resolve, because normalization runs first.
+    assert _resolve_locks(["JaMarr Chase"], pool) == ("7",)
+    assert _resolve_locks([], pool) == ()
+
+
+def test_locking_an_unknown_name_is_refused(
+    slate_csv, projections_csv, tmp_path, capsys
+):
+    runs = tmp_path / "runs"
+    assert run(slate_csv, projections_csv, runs,
+               "--lock", "Nobody At All") == EXIT_DATA
+    assert "not in the pool" in capsys.readouterr().err
+
+
+def test_locking_an_excluded_player_says_so(slate_csv, projections_csv, tmp_path, capsys):
+    runs = tmp_path / "runs"
+    assert run(slate_csv, projections_csv, runs,
+               "--ban", "KC QB0", "--lock", "KC QB0") == EXIT_DATA
+    assert "not in the pool" in capsys.readouterr().err

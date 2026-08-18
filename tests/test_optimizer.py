@@ -274,3 +274,73 @@ def test_a_default_projection_of_zero_still_builds_a_legal_lineup():
     lineups, report = optimize(POOL, Settings(lineups=1))
     assert report.produced == 1
     assert_legal(lineups[0])
+
+
+# ---------------------------------------------------------------------------
+# Locks
+# ---------------------------------------------------------------------------
+
+def test_a_locked_player_appears_in_every_lineup():
+    target = POOL[0]
+    lineups, report = optimize(
+        POOL, Settings(lineups=5, min_unique=1, locks=(target.source_player_id,)),
+        projection_of=project,
+    )
+    assert report.produced == 5
+    for lineup in lineups:
+        assert target.source_player_id in {p.source_player_id for p in lineup}
+        assert_legal(lineup)
+
+
+def test_several_locks_are_all_honoured():
+    from dfs_pipeline.optimizer import lock_shortfalls
+
+    qb = next(p for p in POOL if p.position == "QB")
+    dst = next(p for p in POOL if p.position == "DST")
+    locks = (qb.source_player_id, dst.source_player_id)
+    assert lock_shortfalls(POOL, locks) is None
+
+    lineups, _ = optimize(POOL, Settings(lineups=3, locks=locks),
+                          projection_of=project)
+    for lineup in lineups:
+        ids = {p.source_player_id for p in lineup}
+        assert set(locks) <= ids
+        assert_legal(lineup)
+
+
+def test_locking_a_player_outside_the_pool_is_refused():
+    """Usually means they were filtered out by status, which is worth saying."""
+    from dfs_pipeline.optimizer import lock_shortfalls
+
+    message = lock_shortfalls(POOL, ("no-such-id",))
+    assert "not in the pool" in message
+    assert "injury status" in message
+
+
+def test_locking_two_quarterbacks_is_refused_before_solving():
+    from dfs_pipeline.optimizer import lock_shortfalls
+
+    qbs = tuple(p.source_player_id for p in POOL if p.position == "QB")[:2]
+    message = lock_shortfalls(POOL, qbs)
+    assert "2 locked QBs" in message
+    assert "at most 1" in message
+
+
+def test_more_locks_than_roster_slots_is_refused():
+    from dfs_pipeline.optimizer import lock_shortfalls
+
+    locks = tuple(p.source_player_id for p in POOL[:ROSTER_SIZE + 1])
+    assert "roster slots" in lock_shortfalls(POOL, locks)
+
+
+def test_an_impossible_lock_produces_no_lineups_and_says_why():
+    qbs = tuple(p.source_player_id for p in POOL if p.position == "QB")[:2]
+    lineups, report = optimize(POOL, Settings(lineups=1, locks=qbs),
+                               projection_of=project)
+    assert lineups == []
+    assert "locked QBs" in report.binding_constraint
+
+
+def test_no_locks_is_the_default():
+    assert Settings().locks == ()
+    assert optimize(POOL, Settings(lineups=1), projection_of=project)[1].produced == 1

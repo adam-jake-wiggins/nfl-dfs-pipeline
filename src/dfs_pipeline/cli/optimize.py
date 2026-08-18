@@ -102,7 +102,11 @@ def build_parser() -> argparse.ArgumentParser:
     shape.add_argument("--exclude-status", metavar="LIST", default=None,
                        help="Statuses to exclude (default: OUT,IR,PUP,SUSPENDED). "
                             "Pass an empty string to disable.")
-    shape.add_argument("--ban", action="append", default=[], metavar="NAME")
+    shape.add_argument("--ban", action="append", default=[], metavar="NAME",
+                       help="Exclude a player by name. Repeatable.")
+    shape.add_argument("--lock", action="append", default=[], metavar="NAME",
+                       help="Force a player into every lineup. Repeatable. "
+                            "An ambiguous name is refused rather than guessed.")
 
     where = parser.add_argument_group("locations")
     where.add_argument("--config", metavar="TOML")
@@ -204,6 +208,7 @@ def _run(args, config, run) -> int:
         "min_unique": args.min_unique,
         "exclude_status": args.exclude_status,
         "banned": args.ban,
+        "locked": args.lock,
     }
 
     # -- slate ------------------------------------------------------------
@@ -287,11 +292,21 @@ def _run(args, config, run) -> int:
         },
     }
 
+    # -- locks ------------------------------------------------------------
+    try:
+        locks = _resolve_locks(args.lock, pool)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_DATA
+    if locks:
+        print(f"Locks: {len(locks)} player(s) forced into every lineup.")
+
     # -- solve ------------------------------------------------------------
     settings = Settings(
         lineups=args.lineups, stack=args.stack, bringback=args.bringback,
         max_exposure=args.max_exposure, min_salary=args.min_salary,
         min_unique=args.min_unique, time_limit=args.time_limit,
+        locks=locks,
     )
     lineups, report = optimize(
         pool, settings, projection_of=lambda p: matched[p.source_player_id]
@@ -345,6 +360,43 @@ def _run(args, config, run) -> int:
         print(f"  and to {args.output}")
     print(f"  run: {run.path}")
     return EXIT_OK
+
+
+def _resolve_locks(names, pool) -> tuple[str, ...]:
+    """Resolve locked player names to source ids, refusing ambiguity.
+
+    The prototype locked by name with a constraint reading "exactly one player
+    called that is selected", so a lock on a duplicated name would happily
+    satisfy itself with the wrong person. Names are resolved to a single id
+    here, and a name matching several players is an error naming all of them --
+    the operator knows which one they meant, and guessing would put a stranger
+    in every lineup.
+    """
+    if not names:
+        return ()
+
+    by_key = {}
+    for player in pool:
+        by_key.setdefault(normalize_name(player.name), []).append(player)
+
+    resolved = []
+    for name in names:
+        candidates = by_key.get(normalize_name(name), [])
+        if not candidates:
+            raise ValueError(
+                f"locked player {name!r} is not in the pool. Check the spelling, "
+                f"or they may have been excluded by an injury status."
+            )
+        if len(candidates) > 1:
+            described = ", ".join(
+                f"{p.name} ({p.position} {p.team}, ${p.salary:,})" for p in candidates
+            )
+            raise ValueError(
+                f"locked name {name!r} matches {len(candidates)} players: "
+                f"{described}. Locking by name cannot choose between them."
+            )
+        resolved.append(candidates[0].source_player_id)
+    return tuple(resolved)
 
 
 def _digest(raw: bytes) -> str:

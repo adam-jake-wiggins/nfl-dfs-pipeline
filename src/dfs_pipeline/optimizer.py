@@ -51,6 +51,7 @@ from dfs_pipeline.lineup import assign_slots
 
 __all__ = [
     "BRINGBACK_POSITIONS",
+    "lock_shortfalls",
     "position_shortfalls",
     "OptimizerReport",
     "STACK_POSITIONS",
@@ -87,6 +88,10 @@ class Settings:
     max_exposure: float = 1.0
     stack: int = 0
     bringback: int = 0
+    #: Source player ids forced into every lineup. Ids rather than names:
+    #: the prototype locked by name, so a lock on a duplicated name forced
+    #: "exactly one player called that" rather than the intended person.
+    locks: tuple[str, ...] = ()
     min_games: int = MIN_DISTINCT_GAMES
     time_limit: float | None = None
 
@@ -253,11 +258,52 @@ def position_shortfalls(pool: Sequence) -> list[str]:
     ]
 
 
+def lock_shortfalls(pool: Sequence, locks: Sequence[str]) -> str | None:
+    """Check locks are satisfiable before solving, or say why not.
+
+    Three ways locks fail, each with a message naming the cause rather than
+    leaving the solver to report a bare infeasibility:
+
+    * a locked player is not in the pool -- usually filtered out by status,
+      which is worth saying plainly since the operator asked for them by name;
+    * more locks than roster slots;
+    * locks that already violate a position bound, e.g. two quarterbacks.
+    """
+    if not locks:
+        return None
+
+    available = {p.source_player_id: p for p in pool}
+    missing = [lock for lock in locks if lock not in available]
+    if missing:
+        return (
+            f"locked player(s) not in the pool: {', '.join(missing)}. They may "
+            f"have been excluded by an injury status or a salary floor."
+        )
+
+    if len(locks) > ROSTER_SIZE:
+        return f"{len(locks)} locks but only {ROSTER_SIZE} roster slots"
+
+    counts = Counter(available[lock].position for lock in locks)
+    for position, count in counts.items():
+        _low, high = POSITION_BOUNDS.get(position, (0, ROSTER_SIZE))
+        if count > high:
+            return (
+                f"{count} locked {position}s but a lineup admits at most {high}"
+            )
+    return None
+
+
 def optimize(pool: Sequence, settings: Settings, *, projection_of=None):
     """Build lineups sequentially. Returns (lineups, report)."""
     projection_of = projection_of or (lambda p: getattr(p, "projection", 0.0))
     report = OptimizerReport(requested=settings.lineups, mode="sequential")
     started = time.perf_counter()
+
+    lock_problem = lock_shortfalls(pool, settings.locks)
+    if lock_problem:
+        report.binding_constraint = lock_problem
+        report.seconds = time.perf_counter() - started
+        return [], report
 
     shortfalls = position_shortfalls(pool)
     if shortfalls:
@@ -289,6 +335,10 @@ def optimize(pool: Sequence, settings: Settings, *, projection_of=None):
             for i, player in enumerate(pool):
                 if usage.get(player.source_player_id, 0) >= cap:
                     problem += variables[i] == 0
+
+        for i, player in enumerate(pool):
+            if player.source_player_id in settings.locks:
+                problem += variables[i] == 1
 
         for earlier in previous:
             problem += (
