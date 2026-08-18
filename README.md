@@ -4,12 +4,19 @@
 demonstrating mixed-integer optimization, multi-source data engineering, and
 temporal data integrity.**
 
-> **Project status: early.** This repository was initialized on 2026-08-17.
-> The two scripts at the root are working prototypes that have run only on
-> synthetic data. The engineering described below is in progress, and every
-> claim in this README is labelled **VERIFIED**, **UNVERIFIED**, or **BLOCKED**
-> so that nothing here overstates what currently exists. See
-> [DEVLOG.md](DEVLOG.md) for the dated build narrative.
+> **Project status.** Repository initialized 2026-08-17. The capture and
+> optimization pipeline is built and **verified against real DraftKings,
+> FantasyPros, Daily Fantasy Fuel, Odds API and nflverse files** — 705 tests,
+> 98% coverage. It has **not yet run for a full season**, and no contest
+> results or ROI are claimed.
+>
+> The two scripts at the repository root are the original prototypes, kept
+> unmodified so the hardening is visible as a diff rather than asserted.
+>
+> Every claim here is labelled **VERIFIED**, **UNVERIFIED**, or **BLOCKED**, so
+> nothing overstates what exists. [PORTFOLIO_CASE_STUDY.md](PORTFOLIO_CASE_STUDY.md)
+> is the narrative writeup; [DEVLOG.md](DEVLOG.md) is the dated build log,
+> including the wrong turns.
 
 ---
 
@@ -42,6 +49,7 @@ does not.
 | `dk_optimizer.py` | MILP lineup optimizer (PuLP/CBC). Enforces contest rules, stacking, bring-back, exposure caps, locks, bans. | Prototype, synthetic data only |
 | `dk_vegas_adjust.py` | Reweights projections by betting-market implied team totals. | Prototype, synthetic data only |
 | `RESEARCH_ROADMAP.md` | The staged research plan, with explicit evidence gates on every paid escalation. | Current |
+| `PORTFOLIO_CASE_STUDY.md` | The narrative writeup: the problem, what the real files corrected, what I got wrong, and the decisions rejected with their evidence. | Current |
 | `DEVLOG.md` | Dated build log: what was built, what broke, what was decided and why. | Current |
 | `TESTING.md` | What the test suite proves, how to run it, and what it does not prove. | Current |
 

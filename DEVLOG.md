@@ -1523,6 +1523,35 @@ failure, which is the failure class this project exists to avoid.
 
 **705 tests, 98% coverage, ~42 seconds, no network.**
 
+### Case study published
+
+`PORTFOLIO_CASE_STUDY.md` moves out of the gitignored `_local/` and into the
+repository, reversing the day-one decision to keep it private until it had real
+results. It now has them, and every figure in it traces to a DEVLOG entry or is
+checkable against the repository — commit count, test count, source size,
+match rates, the benchmark table, the 0.023-point scoring agreement.
+
+Three sections carry the weight, and all three are about being wrong rather
+than being right: the eight specification assumptions the real files
+corrected, an unhedged account of the mistakes (including a test that claimed
+32,760 exhaustive cases while running zero), and the decisions rejected with
+their evidence.
+
+The modeling ledger says **none yet** and stays that way until a contest has
+been entered on a completed regular-season slate. The engineering ledger
+stands alone, which is the separation the template argued for and the reason
+the document can be honest.
+
+The source handoff (`CLAUDE_CODE_HANDOFF_v2.md`) remains private, unchanged
+from the original reasoning: it is an input to the work, written first-person
+to an assistant, and its substantive content is already restated third-person
+across README, DEVLOG and TESTING.
+
+Also corrected the README status block, which still claimed the project had
+"run only on synthetic data" — true of the two root prototypes, misleading
+about the package, and exactly the kind of stale claim a public-facing document
+should not carry.
+
 ### Open items
 
 Nothing is BLOCKED. Everything below can proceed now.
