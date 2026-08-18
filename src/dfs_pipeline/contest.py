@@ -32,6 +32,7 @@ __all__ = [
     "MIN_DISTINCT_GAMES",
     "SLOT_ORDER",
     "FLEX_ELIGIBLE",
+    "SLOT_ELIGIBILITY",
     "POSITION_BOUNDS",
     "legal_roster_shapes",
     "is_legal_roster_shape",
@@ -59,6 +60,17 @@ SLOT_ORDER: tuple[str, ...] = (
 
 #: Positions the FLEX slot accepts. Notably excludes QB and DST.
 FLEX_ELIGIBLE = frozenset({"RB", "WR", "TE"})
+
+#: Which positions each named slot will accept. Derived from FLEX_ELIGIBLE so
+#: the two cannot drift apart, and consumed by the slot-assignment matcher.
+SLOT_ELIGIBILITY: Mapping[str, frozenset[str]] = {
+    "QB": frozenset({"QB"}),
+    "RB": frozenset({"RB"}),
+    "WR": frozenset({"WR"}),
+    "TE": frozenset({"TE"}),
+    "FLEX": FLEX_ELIGIBLE,
+    "DST": frozenset({"DST"}),
+}
 
 #: Inclusive (minimum, maximum) count for each position across the full
 #: nine-player roster, i.e. *after* the FLEX slot has been filled.

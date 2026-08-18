@@ -1229,6 +1229,68 @@ their decision would be undone on the next run.
 
 587 tests, 99% coverage. No test touches the network.
 
+### Slot assignment: greedy replaced with bipartite matching
+
+The prototype filled slots in order, took the first eligible player, and wrote
+``None`` into anything it could not fill -- which the CSV writer emitted as a
+blank cell, producing an upload file that looks complete and is rejected.
+
+**The deeper defect was that greedy assignment is order-dependent and can fail
+on assignable lineups.** Slots `[FLEX, WR, WR, WR]` with players
+`[WR, WR, WR, RB]`: fill FLEX first, take a receiver, and two remain for three
+WR slots. The prototype avoided this only because it happened to fill
+dedicated slots before FLEX — correct by luck of the constraint structure, not
+by construction, and silently broken by any future change to the slot list.
+
+Replaced with **maximum bipartite matching** (Kuhn's augmenting-path
+algorithm), which finds a perfect matching if and only if one exists. When a
+slot finds its preferred player taken, it asks that slot to move rather than
+giving up — which is exactly the step greedy lacks. At nine players the
+algorithm is instant; the reason to use it is correctness.
+
+### The proof the handoff asked for
+
+> "Prove `assign_slots()` correct over every valid position multiset."
+
+Done exhaustively: all three legal roster shapes × every distinct player
+ordering — **32,760 assignments**, each checked valid slot by slot.
+
+| shape | distinct orderings |
+|---|---|
+| QB1 RB2 WR4 TE1 DST1 | 7,560 |
+| QB1 RB3 WR3 TE1 DST1 | 10,080 |
+| QB1 RB2 WR3 TE2 DST1 | 15,120 |
+
+Writing that test needed its own bug fixed: the distinct-permutation generator
+tested `if not remaining` as its base case while decrementing counts in place,
+so `remaining` never emptied and it yielded nothing. The assertion
+`checked > 10_000` caught it — a test that silently ran zero iterations would
+otherwise have passed as green.
+
+A property test also cross-checks the matcher against
+`is_legal_roster_shape()`: two independent statements of the same constraint,
+one enumerating shapes arithmetically and one solving a matching problem,
+required never to disagree.
+
+### Unassignable means raise, never blank
+
+Every failure path raises `UnassignableLineup` carrying the positions
+involved. Nothing partial is ever returned, because a blank cell in an upload
+file is worse than a refusal — the refusal is visible.
+
+### Determinism
+
+A lineup can have several valid assignments; with two tight ends either may
+take TE and the other FLEX. Slots are processed in `SLOT_ORDER` and players
+tried in input order, so identical input always produces an identical file. An
+optimizer that emits a different file each run is not reproducible, and
+reproducibility is an acceptance criterion.
+
+Verified end to end: `assign_slots()` output feeds `write_upload_csv()`
+directly, producing a valid DraftKings upload row.
+
+608 tests, 99% coverage.
+
 ### Open items
 
 Nothing is BLOCKED. Everything below can proceed now.
