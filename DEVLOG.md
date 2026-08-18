@@ -1291,6 +1291,40 @@ directly, producing a valid DraftKings upload row.
 
 608 tests, 99% coverage.
 
+### Player-pool filtering
+
+Filtering is an **optimizer** concern and is deliberately not wired into
+`dfs-snapshot`. Capture records a player's status as it stood; that
+designation is point-in-time data which cannot be recovered later, and
+discarding it at ingest would throw away the thing a backtest needs.
+
+**The handoff's example filter would have matched nothing.** It specifies
+`--exclude-status OUT,DOUBTFUL`, but DraftKings emits `Q`, `IR` and `OUT` —
+never `DOUBTFUL`, verified against a real export. Written to that spelling,
+the filter would have silently left every doubtful player in the pool. Sources
+are now normalized onto a canonical vocabulary: DFF's `O` and DK's `OUT` both
+become `OUT`, `Q` becomes `QUESTIONABLE`, and both the handoff's spelling and
+DraftKings' resolve to the same thing.
+
+**QUESTIONABLE is not excluded by default.** A questionable player is a
+judgement call and frequently the point of a contrarian lineup; removing them
+by default would make that decision for the operator silently. The default
+removes only the genuinely unplayable: `OUT`, `IR`, `PUP`, `SUSPENDED`.
+
+Two cases about *not knowing*, both of which a naive filter gets wrong:
+
+- **No status column at all** is not the same as everyone being healthy. The
+  report says so explicitly, per the handoff's "if absent, say so".
+- **An unrecognised status is reported, never acted on.** Guessing that an
+  unknown code means "out" could silently empty a position. The player stays
+  in the pool and the unknown value is named.
+
+Against the real 716-entry slate: 693 eligible, 15 IR and 8 OUT excluded, each
+named in the report. A pool that silently shrinks is indistinguishable from
+one that was always small.
+
+647 tests, 99% coverage.
+
 ### Open items
 
 Nothing is BLOCKED. Everything below can proceed now.
