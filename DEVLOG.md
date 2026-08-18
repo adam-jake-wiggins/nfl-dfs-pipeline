@@ -1135,9 +1135,114 @@ agreement for *every* playoff player, and does.
 
 554 tests, 99% coverage.
 
+### Phase 1 begins: the identity crosswalk
+
+The prototype's defining defect. It exact-matched lowercased names and, on a
+miss, silently substituted a season average -- plausible lineups built on the
+wrong numbers, with no signal anything had happened.
+
+**Result on the real 692-player slate: 98.0% resolved, and zero unresolved
+players above $5,000.**
+
+### The handoff's central assumption was wrong
+
+The specification calls for mapping "DK player IDs onto stable nflverse IDs"
+via the nflverse crosswalk. **nflverse carries no DraftKings id.**
+`ff_playerids` cross-references MFL, Sportradar, FantasyPros, PFF, Sleeper,
+ESPN, Yahoo, CBS, PFR and Rotowire. DraftKings appears in none of them.
+
+So DraftKings can only be joined by *name*, with team and position as
+disambiguators. That makes the **persistent** crosswalk more important than
+anticipated rather than less: a name match is expensive and fallible, so it is
+made once and stored against DraftKings' stable `playerDkId`. Week 12 reuses
+Week 3's answer by id. A test starves the resolver of its entire reference and
+confirms a stored answer still stands.
+
+### Layering two reference tables
+
+| reference | resolved | unmatched |
+|---|---|---|
+| `ff_playerids` alone | 82.9% | 118 |
+| `ff_playerids` + `players` | **98.0%** | 14 |
+
+`ff_playerids` is preferred for its cross-platform ids; `players` is broader
+(24k name keys against 8k) and catches rookies and fringe players the
+fantasy-oriented table omits. The residue is 14, median salary $3,000, **none
+above $5,000** — punt plays whose absence appears in the match report rather
+than silently.
+
+### A bug that discarded exactly what the module exists for
+
+Deduplicating the reference by `nflverse_id` looked obviously correct and was
+obviously wrong.
+
+`ff_playerids` calls him **"Kenneth Gainwell"**; `players` and DraftKings say
+**"Kenny Gainwell"** — both gsis `00-0036919`. Registering the first spelling
+marked the id as seen, so the second was skipped as a duplicate. **The dedup
+was throwing away precisely the aliases the crosswalk exists to resolve**, and
+it cost the one expensive miss on the slate ($5,200).
+
+Now keyed on `(id, normalized_name)`, so every spelling is indexed pointing at
+one id. Several rows for one player is not ambiguity, so they collapse before
+the ambiguity check. Fixing this took 98.0% and removed the only
+above-floor gap.
+
+### Deliberately no fuzzy matching
+
+The handoff permits fuzzy matching above a confidence threshold with team and
+position agreement. Not implemented, and asserted absent by test.
+
+Exact matching plus team/position disambiguation already reaches 98%, and the
+residue is the cheapest players on the slate. Fuzzy matching there trades a
+**visible** miss for an **invisible** wrong answer: a miss is reported, costs
+one punt play, and is resolvable by hand once and stored forever, while a bad
+fuzzy match silently attaches one player's history to another and looks
+exactly like success.
+
+Revisit if a later slate shows expensive players in the residue — which is why
+the residue is reported rather than hidden.
+
+Related, and kept: a space is not treated as punctuation. `Ja'Marr` and
+`JaMarr` both normalize to `jamarr`; `Ja Marr` deliberately does not match.
+Deleting apostrophes is safe because sources disagree about them constantly;
+collapsing spaces would merge genuinely distinct names.
+
+### Defenses never touch name logic
+
+Resolved through the exhaustive 32-team map, with a test confirming a defense
+named after a quarterback resolves to nothing rather than matching him. A
+defense is a team-level entity, not a player with an odd name.
+
+### nflverse is a third team-abbreviation convention
+
+`GBP`, `KCC`, `NEP`, `NOS`, `SDC`, `TBB` — added as aliases. Also `FA` and
+`FA*` for unrostered players, which are **not** franchises and must not be
+aliased to one; `is_free_agent()` lets a caller tell "no team" from "we failed
+to recognise this". All 38 nflverse codes now resolve or are identified as
+free-agent markers.
+
+### Misses and rejections are stored too
+
+A fruitless lookup is recorded so it is not repeated every week, and a
+resolution a human marks `rejected` is never silently re-derived — otherwise
+their decision would be undone on the next run.
+
+587 tests, 99% coverage. No test touches the network.
+
 ### Open items
-- Verify the bulk-upload CSV format against a real DK entries template
-  (**BLOCKED** — needs slates to open).
+
+Nothing is BLOCKED. Everything below can proceed now.
+
+- **Rare-event scoring** — safeties, two-point conversions, return touchdowns
+  and offensive fumble-recovery touchdowns are covered only by component tests
+  against DraftKings' published rules, not against DK's own output. Closing
+  this needs a **regular-season** contest export: nflverse carries no
+  preseason data, so a preseason contest cannot supply our side of the
+  comparison.
+- **Realized ownership** — needs a contest export. Roadmap R-stage work,
+  explicitly out of scope for Phases 0 and 1.
+- **Contest-results parser** — deliberately unbuilt. Every real file so far
+  has broken a guessed schema; there is no reason to expect this one differs.
 - Benchmark simultaneous vs sequential multi-lineup solving at realistic scale
-  (~500 players, 20–150 lineups).
+  (~500 players, 20–150 lineups). Phase 1.
 - Select a license.

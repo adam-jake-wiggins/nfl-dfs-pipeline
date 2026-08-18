@@ -26,6 +26,8 @@ __all__ = [
     "resolve_team",
     "UnknownTeam",
     "canonical_abbreviations",
+    "FREE_AGENT_CODES",
+    "is_free_agent",
 ]
 
 
@@ -74,31 +76,44 @@ TEAMS: tuple[Team, ...] = (
     Team("DAL", "Dallas", "Cowboys"),
     Team("DEN", "Denver", "Broncos"),
     Team("DET", "Detroit", "Lions"),
-    Team("GB", "Green Bay", "Packers", ("GNB",)),
+    Team("GB", "Green Bay", "Packers", ("GNB", "GBP")),
     Team("HOU", "Houston", "Texans", ("HST",)),
     Team("IND", "Indianapolis", "Colts"),
     Team("JAX", "Jacksonville", "Jaguars", ("JAC",)),
-    Team("KC", "Kansas City", "Chiefs", ("KAN",)),
+    Team("KC", "Kansas City", "Chiefs", ("KAN", "KCC")),
     # Relocated franchises keep their historical codes as aliases so that
     # older nflverse seasons resolve without special-casing at the call site.
-    Team("LAC", "Los Angeles", "Chargers", ("SD", "SDG")),
+    Team("LAC", "Los Angeles", "Chargers", ("SD", "SDG", "SDC")),
     Team("LAR", "Los Angeles", "Rams", ("LA", "STL", "RAM")),
     Team("LV", "Las Vegas", "Raiders", ("OAK", "LVR", "RAI")),
     Team("MIA", "Miami", "Dolphins"),
     Team("MIN", "Minnesota", "Vikings"),
-    Team("NE", "New England", "Patriots", ("NWE",)),
-    Team("NO", "New Orleans", "Saints", ("NOR",)),
+    Team("NE", "New England", "Patriots", ("NWE", "NEP")),
+    Team("NO", "New Orleans", "Saints", ("NOR", "NOS")),
     Team("NYG", "New York", "Giants"),
     Team("NYJ", "New York", "Jets"),
     Team("PHI", "Philadelphia", "Eagles"),
     Team("PIT", "Pittsburgh", "Steelers"),
     Team("SEA", "Seattle", "Seahawks"),
     Team("SF", "San Francisco", "49ers", ("SFO",)),
-    Team("TB", "Tampa Bay", "Buccaneers", ("TAM",)),
+    Team("TB", "Tampa Bay", "Buccaneers", ("TAM", "TBB")),
     Team("TEN", "Tennessee", "Titans", ("OTI",)),
     # Renamed 2022; both former identities appear in historical data.
     Team("WAS", "Washington", "Commanders", ("WSH", "WFT")),
 )
+
+
+#: nflverse writes an unrostered player's team as "FA". That is not a
+#: franchise and must not be aliased to one -- but it is also not an unknown
+#: code, and a caller needs to tell "no team" apart from "we failed to
+#: recognise this". :func:`resolve_team` still raises for these; check here
+#: first.
+FREE_AGENT_CODES = frozenset({"FA", "FA*", "FA0"})
+
+
+def is_free_agent(value: str | None) -> bool:
+    """Whether a team code means "unrostered" rather than naming a franchise."""
+    return bool(value) and value.strip().upper() in FREE_AGENT_CODES
 
 
 def canonical_abbreviations() -> frozenset[str]:
