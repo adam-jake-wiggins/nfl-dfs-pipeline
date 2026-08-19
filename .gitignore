@@ -8,6 +8,13 @@
 !.env.example
 
 # ---------------------------------------------------------------------------
+# Local configuration
+# ---------------------------------------------------------------------------
+# dfs.toml holds machine-specific absolute paths; dfs.toml.example is the
+# committed template. Same pattern as .env / .env.example.
+dfs.toml
+
+# ---------------------------------------------------------------------------
 # Private working documents
 # ---------------------------------------------------------------------------
 # Source specifications written as first-person working notes. Their
@@ -39,6 +46,13 @@ runs/
 # cloning this repository can run the suite. This negation works because no
 # parent directory of tests/ is ignored.
 !tests/fixtures/**
+
+# ---------------------------------------------------------------------------
+# Generated documents
+# ---------------------------------------------------------------------------
+# RUNBOOK.pdf is rebuilt from tools/make_runbook.py, which is committed. The
+# generator is the source of truth; the PDF is an output like any other.
+RUNBOOK.pdf
 
 # ---------------------------------------------------------------------------
 # Python

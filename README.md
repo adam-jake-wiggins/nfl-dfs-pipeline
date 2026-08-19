@@ -6,7 +6,7 @@ temporal data integrity.**
 
 > **Project status.** Repository initialized 2026-08-17. The capture and
 > optimization pipeline is built and **verified against real DraftKings,
-> FantasyPros, Daily Fantasy Fuel, Odds API and nflverse files** — 705 tests,
+> FantasyPros, Daily Fantasy Fuel, Odds API and nflverse files** — 710 tests,
 > 98% coverage. It has **not yet run for a full season**, and no contest
 > results or ROI are claimed.
 >
@@ -197,13 +197,30 @@ cannot exhaust the monthly budget before a live slate.
 Exit codes: `0` success, `1` runtime failure, `2` usage error, `3` input data
 rejected.
 
+## Operator runbook
+
+`RUNBOOK.pdf` is a one-page card covering the weekly routine — capture, build
+lineups, score the week — plus a failure table keyed on the exact text the
+tool prints. It is generated, not hand-written:
+
+```bash
+uv sync --extra docs
+uv run python tools/make_runbook.py
+```
+
+The generator is committed and the PDF is not, because a printed document is
+the easiest thing in a repository to leave stale. `tests/test_runbook.py`
+asserts the result is exactly one page and that **every flag the runbook names
+still exists in the live argument parsers** — so renaming a flag breaks the
+suite rather than silently breaking the runbook.
+
 ## Tests
 
 ```bash
 uv run pytest --cov=dfs_pipeline --cov-report=term-missing
 ```
 
-**VERIFIED (2026-08-17):** 705 tests, 100% statement coverage. The suite
+**VERIFIED (2026-08-19):** 710 tests, 98% statement coverage. The suite
 includes property-based tests over generated inputs, malformed-input fixtures
 asserting each failure names its file/row/column, and fixtures recorded from
 real DraftKings and Odds API responses. No test touches the network — a suite

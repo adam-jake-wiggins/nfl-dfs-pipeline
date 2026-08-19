@@ -1573,3 +1573,68 @@ Nothing is BLOCKED. Everything below can proceed now.
   scheduled migration rather than a live failure; the warnings are
   filtered in pytest config so they do not drown real ones.
 - Select a license.
+
+---
+
+## 2026-08-19 — Session 9: operator runbook, and a test that was passing by luck
+
+Built `RUNBOOK.pdf`, a one-page card for running the tool without a chat
+session open: capture, build lineups, score the week, plus a failure table
+keyed on the exact strings the CLIs print.
+
+Every command in it was executed against the real CLI before it was written
+down. That pass caught two things worth knowing: `--salaries` and
+`--slate-api` are mutually exclusive in *both* commands, and `dfs-optimize`
+requires `--projections` whose file must contain DSTs — otherwise the run
+fails with `DST: 0 in the pool, 1 required`. A runbook naming a flag
+combination the tool rejects is worse than no runbook.
+
+### The generator is committed; the PDF is not
+
+A printed document is the easiest artifact in a repository to leave stale.
+`tools/make_runbook.py` is the source of truth and `RUNBOOK.pdf` is gitignored
+like any other build output. `tests/test_runbook.py` pins two properties:
+
+- the document builds to **exactly one page** — a silent spill onto page two
+  loses whatever falls off the bottom;
+- **every flag the document names still exists** in the live argument parsers,
+  read via `build_parser()` on both CLIs.
+
+The flag check reads the *built flowables*, not this file's source and not
+text extracted back out of the PDF. Both alternatives were tried and both
+fail for reasons unrelated to drift: source scanning picks up flags mentioned
+in docstrings (`--extra`, from a `uv sync --extra docs` example), and PDF
+extraction breaks long tokens across line wraps.
+
+The test was then verified by breaking it on purpose — renaming
+`--max-exposure` to `--maximum-exposure` in the document made it fail with
+that exact flag named, and restoring the file made it pass. A drift test that
+cannot fail is decoration, and this project has already shipped one test that
+ran zero iterations while passing.
+
+### A test that was green only because a file did not exist yet
+
+Adding the runbook turned the full suite red in an unrelated place:
+`test_run_directory_records_config_and_its_origins` asserted that
+`capture.on_duplicate` came from a `default`, and got `config file`.
+
+Not caused by the runbook. Config resolves as `defaults < dfs.toml <
+flags`, and `dfs.toml` is discovered in the current working directory.
+Creating a real `dfs.toml` — which README.md instructs every user to do —
+put one in the repository root, pytest runs from there, and the developer's
+personal settings started leaking into the suite. The suite had been green
+only because no `dfs.toml` had ever existed.
+
+The resolution order is correct; the isolation was not. Added
+`tests/conftest.py` with an autouse fixture running every test from an empty
+directory it owns. All fixture paths in this suite are anchored on `__file__`,
+so nothing depended on the working directory being the repository root.
+
+This is the same failure class the project treats as worst: not a crash, but a
+green signal that stopped meaning anything. It would have hit any stranger who
+cloned the repo and followed the README.
+
+**710 tests, 98% coverage, still no network calls.**
+
+While updating README.md, corrected a stale claim of "100% statement
+coverage" to the measured 98%.

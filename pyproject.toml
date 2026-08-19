@@ -32,6 +32,13 @@ dev = [
     "hypothesis>=6.100,<7.0",
     "pytest-cov>=5.0,<7.0",
 ]
+# PDF toolchain for tools/make_runbook.py. Deliberately not in `dev`: the
+# suite must stay runnable without it, so tests/test_runbook.py skips when
+# these are absent rather than failing.
+docs = [
+    "reportlab>=4.0,<6.0",
+    "pypdf>=4.0,<7.0",
+]
 
 [project.scripts]
 # Console entry points. After installation these are real commands on PATH,
