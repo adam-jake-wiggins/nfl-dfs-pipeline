@@ -208,11 +208,21 @@ uv sync --extra docs
 uv run python tools/make_runbook.py
 ```
 
-The generator is committed and the PDF is not, because a printed document is
-the easiest thing in a repository to leave stale. `tests/test_runbook.py`
-asserts the result is exactly one page and that **every flag the runbook names
-still exists in the live argument parsers** — so renaming a flag breaks the
-suite rather than silently breaking the runbook.
+Both the generator and the PDF are committed — the document is the visible
+artifact, and requiring a build to see it defeats the point. Committing a
+build output is only safe if something notices when it goes stale, so
+`tests/test_runbook.py` pins three properties:
+
+- the document builds to **exactly one page** — a silent spill onto page two
+  loses whatever falls off the bottom;
+- **every flag the runbook names still exists** in the live argument parsers,
+  so renaming a flag breaks the suite rather than silently breaking the
+  runbook;
+- **the committed PDF still matches the generator**, compared on extracted
+  text because reportlab stamps a creation date and no two builds are
+  byte-identical.
+
+Edit `tools/make_runbook.py`, forget to rebuild, and the suite goes red.
 
 ## Tests
 

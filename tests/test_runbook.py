@@ -9,6 +9,11 @@ Two things are worth pinning:
 2. Every flag it names still exists. A flag rename is the realistic way this
    document goes stale, and it is invisible from inside the document.
 
+RUNBOOK.pdf is committed rather than gitignored, so that anyone browsing the
+repository can see the artifact without building it. That choice reintroduces
+the risk gitignoring it avoided -- a printed document drifting away from the
+code that produced it -- so a third test rebuilds and compares.
+
 The generator needs ``reportlab``, which lives in the optional ``docs`` extra
 rather than ``dev`` -- a PDF toolchain is not worth making everyone install to
 run the suite. These tests skip cleanly when it is absent.
@@ -27,6 +32,7 @@ from dfs_pipeline.cli.snapshot import build_parser as build_snapshot_parser
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 GENERATOR = REPO_ROOT / "tools" / "make_runbook.py"
+COMMITTED = REPO_ROOT / "RUNBOOK.pdf"
 
 pytest.importorskip("reportlab", reason="runbook generator needs the 'docs' extra")
 pytest.importorskip("pypdf", reason="runbook generator needs the 'docs' extra")
@@ -53,6 +59,39 @@ def test_runbook_builds_to_exactly_one_page(tmp_path):
 
     assert out.is_file()
     assert len(PdfReader(str(out)).pages) == 1
+
+
+def _text(pdf: Path) -> str:
+    """Extracted text of a PDF, used as the stable identity of its content."""
+    from pypdf import PdfReader
+
+    return "\n".join(page.extract_text() for page in PdfReader(str(pdf)).pages)
+
+
+def test_committed_runbook_is_not_stale(tmp_path):
+    """The checked-in PDF still matches the generator that produces it.
+
+    This is the test that makes committing a build output defensible. Without
+    it, editing tools/make_runbook.py and forgetting to rebuild ships a
+    document that confidently describes a tool that has moved on -- and there
+    is no CI here to notice.
+
+    Compared on extracted text rather than bytes: reportlab stamps a creation
+    date and a document id, so two builds of identical content are never
+    byte-identical.
+    """
+    assert COMMITTED.is_file(), (
+        f"{COMMITTED.name} is committed and should be present. "
+        "Rebuild it: uv run python tools/make_runbook.py"
+    )
+
+    module = _load_generator()
+    fresh = module.build_runbook(tmp_path / "fresh.pdf")
+
+    assert _text(fresh) == _text(COMMITTED), (
+        "RUNBOOK.pdf is out of date with tools/make_runbook.py. "
+        "Rebuild it: uv run python tools/make_runbook.py"
+    )
 
 
 def test_runbook_does_not_write_outside_its_target(tmp_path):

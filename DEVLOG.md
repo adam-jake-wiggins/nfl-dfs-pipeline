@@ -1638,3 +1638,29 @@ cloned the repo and followed the README.
 
 While updating README.md, corrected a stale claim of "100% statement
 coverage" to the measured 98%.
+
+### Addendum, same day: the PDF is committed after all
+
+Reversed the decision above. Gitignoring `RUNBOOK.pdf` protected it from going
+stale, but it also meant nobody browsing the repository could see the artifact
+without installing a PDF toolchain and building it — and in a repository whose
+purpose is partly to be *read*, hiding the deliverable to protect it is the
+wrong trade.
+
+The staleness risk was real, though, and there is no CI here to catch it. So
+committing the PDF came with a third test: rebuild it and compare against the
+committed copy. The comparison is on extracted text rather than bytes, because
+reportlab stamps a creation date and a document id — two builds of identical
+content are never byte-identical, so a byte comparison would fail constantly
+and get deleted within a week.
+
+Verified the same way as the flag check: changed one line of the document
+without rebuilding, confirmed the test failed pointing at `RUNBOOK.pdf`, then
+restored. Editing the generator and forgetting to rebuild now turns the suite
+red.
+
+Also corrected README.md, which until this change stated the opposite policy.
+A repository that contradicts itself about its own conventions is worse than
+one that documents none.
+
+**711 tests, 98% coverage.**

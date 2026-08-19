@@ -48,13 +48,6 @@ runs/
 !tests/fixtures/**
 
 # ---------------------------------------------------------------------------
-# Generated documents
-# ---------------------------------------------------------------------------
-# RUNBOOK.pdf is rebuilt from tools/make_runbook.py, which is committed. The
-# generator is the source of truth; the PDF is an output like any other.
-RUNBOOK.pdf
-
-# ---------------------------------------------------------------------------
 # Python
 # ---------------------------------------------------------------------------
 __pycache__/
